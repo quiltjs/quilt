@@ -26,4 +26,5 @@ export {
   type NodeHttpRequest,
   type NodeHttpHandlerContext,
   type NodeHttpHandler,
+  createNodeHttpRouteHandler,
 } from './adapters/NodeHttpEngineAdapter.js';

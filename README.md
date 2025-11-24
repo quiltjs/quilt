@@ -129,7 +129,7 @@ Types:
 - `HandlerOutputs<D>` – maps a handler’s `dependencies` to the inferred `deps` type.
 - `HttpContext<Req, Res>` – convenience type for `{ req, res }` contexts.
 - `FastifyHandler` / `ExpressHandler` – handler aliases for the Fastify and Express HTTP contexts.
-- `NodeHttpHandlerContext` / `NodeHttpHandler` – helpers for Node HTTP contexts with typed `params`, `query`, and `body`.
+- `NodeHttpHandlerContext` / `NodeHttpHandler` / `createNodeHttpRouteHandler` – helpers for Node HTTP contexts with typed `params`, `query`, and `body`.
 - `HTTPMethod` – union of supported HTTP methods.
 - `ServerEngineAdapter<Req, Res>` – interface adapters implement to plug Quilt into different HTTP engines.
 
@@ -234,6 +234,25 @@ adapters. They are marked as optional peers so you only need to install the stac
 - Using **Fastify** only: install `fastify@^4.25.2` (and `@fastify/multipart` if you need multipart).
 - Using a **custom adapter**: you do not need Express or Fastify at all.
 
+### TypeScript / ESM quickstart
+
+Quilt is published as ESM-only. For a typical TypeScript + Node 18+ project, a minimal `tsconfig.json` that works well with Quilt looks like:
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2021",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  }
+}
+```
+
+Make sure your `package.json` is also configured for ESM (for example, `"type": "module"`), so you can use standard `import`/`export` syntax with `@quiltjs/quilt`.
+
 ## Quick start (Fastify)
 
 ```ts
@@ -309,15 +328,28 @@ import http from 'node:http';
 import {
   Quilt,
   NodeHttpEngineAdapter,
-  createHandler,
-  type NodeHttpContext,
+  createNodeHttpRouteHandler,
+  type NodeHttpHandlerContext,
 } from '@quiltjs/quilt';
 
 const adapter = new NodeHttpEngineAdapter();
 const quilt = new Quilt(adapter);
 
-const helloHandler = createHandler({
-  execute: async ({ req, res }: NodeHttpContext) => {
+type HelloParams = { name: string | undefined };
+type HelloQuery = { search: string | undefined };
+type HelloBody = { value: number };
+
+const helloHandler = createNodeHttpRouteHandler<
+  void,
+  HelloParams,
+  HelloQuery,
+  HelloBody
+>({
+  execute: async ({ req, res }: NodeHttpHandlerContext<
+    HelloParams,
+    HelloQuery,
+    HelloBody
+  >) => {
     res.statusCode = 200;
     res.setHeader('content-type', 'application/json; charset=utf-8');
     res.end(
@@ -668,8 +700,8 @@ await executeHandler(handler, ctx, {
 Quilt is authored in TypeScript and ships declarations. A typical consumer `tsconfig.json` should
 work fine as long as:
 
-- The module system is ESM (e.g. `"module": "NodeNext"` or `"ESNext"`).
-- `"moduleResolution"` is compatible with Node’s ESM resolution.
+- The module system is ESM (for example `"module": "NodeNext"`, `"Node16"`, or `"ESNext"`).
+- `"moduleResolution"` is compatible with Node-style ESM or modern bundlers (for example `"NodeNext"`, `"Node16"`, or `"bundler"`).
 - `"strict": true` is enabled to get the most out of the types.
 
 Quilt targets modern Node runtimes (Node 18+). It does not start your HTTP

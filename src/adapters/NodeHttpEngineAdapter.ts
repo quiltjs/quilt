@@ -1,7 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import http, { type IncomingMessage, type ServerResponse } from 'node:http';
 import type { HTTPMethod, HttpContext, ServerEngineAdapter } from '../Quilt.js';
-import type { Handler } from '../Handler.js';
+import {
+  type Handler,
+  type HandlerOutputs,
+  createHandler,
+} from '../Handler.js';
 
 export type NodeHttpRequest = IncomingMessage & {
   params: Record<string, string | undefined>;
@@ -268,3 +272,37 @@ export type NodeHttpHandler<
     Handler<any, NodeHttpHandlerContext<Params, Query, Body>, any>
   >,
 > = Handler<O, NodeHttpHandlerContext<Params, Query, Body>, D>;
+
+export function createNodeHttpRouteHandler<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  O = any,
+  Params extends Record<string, string | undefined> = Record<
+    string,
+    string | undefined
+  >,
+  Query extends Record<string, string | undefined> = Record<
+    string,
+    string | undefined
+  >,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Body = any,
+  D extends Record<string, Handler<any, NodeHttpContext, any>> = Record<
+    string,
+    Handler<any, NodeHttpContext, any>
+  >,
+>({
+  execute,
+  dependencies,
+}: {
+  execute: (
+    ctx: NodeHttpHandlerContext<Params, Query, Body>,
+    deps: HandlerOutputs<D>,
+  ) => Promise<O> | O;
+  dependencies?: D;
+}): Handler<O, NodeHttpContext, D> {
+  return createHandler<O, NodeHttpContext, D>({
+    dependencies,
+    execute: (ctx, deps) =>
+      execute(ctx as NodeHttpHandlerContext<Params, Query, Body>, deps),
+  });
+}

@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.2
+
+- Added `createNodeHttpRouteHandler` helper for Node HTTP to make it easier to define handlers with typed `params`, `query`, and `body` while remaining compatible with `Quilt`’s routing API.
+- Documented the Node HTTP typed route helper in the README and adjusted the Node HTTP quickstart example to showcase typed `params`/`query`/`body`.
+- Relaxed TypeScript configuration guidance in the README to mention other compatible module/moduleResolution settings (`Node16`, `bundler`) in addition to `NodeNext`.
+
 ## 0.2.1
 
 - Improved `Quilt` routing methods (`get`, `post`, etc.) to preserve handler dependency types per call, removing the need for casts when using concrete dependency maps.

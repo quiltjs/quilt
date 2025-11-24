@@ -1,6 +1,6 @@
 {
   "name": "@quiltjs/quilt",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Lightweight, type-safe handler and router abstraction for Node HTTP servers.",
   "type": "module",
   "main": "dist/index.js",
