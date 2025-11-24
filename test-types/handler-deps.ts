@@ -2,7 +2,7 @@ import {
   createHandler,
   createMiddlewareHandler,
   type Handler,
-} from '@quiltjs/quilt';
+} from '../src/Handler.js';
 
 type RequestContext = {
   requestId: string;
