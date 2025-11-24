@@ -109,13 +109,7 @@ Now `GET /api/hello?name=Quilt` returns:
 
 ```ts
 import express from 'express';
-import {
-  Quilt,
-  ExpressEngineAdapter,
-  createHandler,
-  registerRouters,
-  type QuiltRouter,
-} from '@quiltjs/quilt';
+import { Quilt, ExpressEngineAdapter, createHandler } from '@quiltjs/quilt';
 
 const app = express();
 app.use(express.json());
@@ -130,21 +124,7 @@ const helloHandler = createHandler({
   },
 });
 
-class HelloRouter implements QuiltRouter {
-  readonly prefix = '/api';
-
-  getRoutes() {
-    return [
-      {
-        method: 'GET',
-        path: '/hello',
-        handler: helloHandler,
-      },
-    ];
-  }
-}
-
-registerRouters(quilt, new HelloRouter());
+quilt.get('/api/hello', helloHandler);
 
 quilt.listen(3000, () => {
   console.log('Server listening on http://localhost:3000');
@@ -157,13 +137,7 @@ quilt.listen(3000, () => {
 
 ```ts
 import http from 'node:http';
-import {
-  Quilt,
-  NodeHttpEngineAdapter,
-  createHandler,
-  registerRouters,
-  type QuiltRouter,
-} from '@quiltjs/quilt';
+import { Quilt, NodeHttpEngineAdapter, createHandler } from '@quiltjs/quilt';
 
 const adapter = new NodeHttpEngineAdapter();
 const quilt = new Quilt(adapter);
@@ -180,21 +154,7 @@ const helloHandler = createHandler({
   },
 });
 
-class HelloRouter implements QuiltRouter {
-  readonly prefix = '/api';
-
-  getRoutes() {
-    return [
-      {
-        method: 'GET',
-        path: '/hello/:name',
-        handler: helloHandler,
-      },
-    ];
-  }
-}
-
-registerRouters(quilt, new HelloRouter());
+quilt.get('/api/hello/:name', helloHandler);
 
 adapter.listen(3000, () => {
   console.log('Server listening on http://localhost:3000');
@@ -268,40 +228,19 @@ handlers as an orchestration layer:
 
 ### Routing
 
-Routing is done via `Quilt` and `QuiltRouter`:
+Routing is done via `Quilt`:
 
 - `Quilt` defines HTTP verb helpers (`get`, `post`, `put`, `patch`, `delete`, `options`, `head`)
   and delegates to a `ServerEngineAdapter`.
-- `QuiltRouter` describes a group of routes that share a `prefix`.
 
 ```ts
-import { type QuiltRouter, createHandler } from '@quiltjs/quilt';
+import { createHandler } from '@quiltjs/quilt';
 
 const pingHandler = createHandler({
   execute: async () => ({ ok: true }),
 });
 
-class HealthRouter implements QuiltRouter {
-  readonly prefix = '';
-
-  getRoutes() {
-    return [
-      {
-        method: 'GET',
-        path: '/status',
-        handler: pingHandler,
-      },
-    ];
-  }
-}
-```
-
-Routers are registered with:
-
-```ts
-import { registerRouters } from '@quiltjs/quilt';
-
-registerRouters(quilt, new HealthRouter());
+quilt.get('/status', pingHandler);
 ```
 
 ---

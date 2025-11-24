@@ -8,13 +8,6 @@ export {
 } from './Handler.js';
 
 export { executeHandler } from './executeHandler.js';
-export { registerRouters } from './registerRouter.js';
-
-export {
-  type QuiltRoute,
-  type HttpMethod,
-  default as QuiltRouter,
-} from './QuiltRouter.js';
 
 export { FastifyEngineAdapter } from './adapters/FastifyEngineAdapter.js';
 export { ExpressEngineAdapter } from './adapters/ExpressEngineAdapter.js';

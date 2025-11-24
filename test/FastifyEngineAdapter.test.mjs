@@ -2,12 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fastify from 'fastify';
 
-import {
-  Quilt,
-  FastifyEngineAdapter,
-  createHandler,
-  registerRouters,
-} from '../dist/index.js';
+import { Quilt, FastifyEngineAdapter, createHandler } from '../dist/index.js';
 
 test('FastifyEngineAdapter integrates Quilt with Fastify for GET + query', async () => {
   const app = fastify();
@@ -97,7 +92,7 @@ test('FastifyEngineAdapter respects Quilt error handler', async () => {
   }
 });
 
-test('FastifyEngineAdapter works with registerRouters', async () => {
+test('FastifyEngineAdapter works with routing', async () => {
   const app = fastify();
   const quilt = new Quilt(new FastifyEngineAdapter({ fastify: app }));
 
@@ -107,20 +102,7 @@ test('FastifyEngineAdapter works with registerRouters', async () => {
     },
   });
 
-  const router = {
-    prefix: '',
-    getRoutes() {
-      return [
-        {
-          method: 'GET',
-          path: '/status',
-          handler: statusHandler,
-        },
-      ];
-    },
-  };
-
-  registerRouters(quilt, router);
+  quilt.get('/status', statusHandler);
 
   const address = await app.listen({ port: 0 });
   const url = new URL(address);

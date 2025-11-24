@@ -1,12 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import {
-  Quilt,
-  NodeHttpEngineAdapter,
-  createHandler,
-  registerRouters,
-} from '../dist/index.js';
+import { Quilt, NodeHttpEngineAdapter, createHandler } from '../dist/index.js';
 
 test('NodeHttpEngineAdapter handles GET + query', async () => {
   const adapter = new NodeHttpEngineAdapter();
@@ -115,7 +110,7 @@ test('NodeHttpEngineAdapter respects Quilt error handler', async () => {
   }
 });
 
-test('NodeHttpEngineAdapter works with registerRouters', async () => {
+test('NodeHttpEngineAdapter works with routing', async () => {
   const adapter = new NodeHttpEngineAdapter();
   const quilt = new Quilt(adapter);
 
@@ -127,20 +122,7 @@ test('NodeHttpEngineAdapter works with registerRouters', async () => {
     },
   });
 
-  const router = {
-    prefix: '',
-    getRoutes() {
-      return [
-        {
-          method: 'GET',
-          path: '/status',
-          handler: statusHandler,
-        },
-      ];
-    },
-  };
-
-  registerRouters(quilt, router);
+  quilt.get('/status', statusHandler);
 
   await new Promise((resolve) => {
     adapter.listen(0, resolve);

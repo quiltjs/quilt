@@ -1,12 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import express from 'express';
-import {
-  Quilt,
-  ExpressEngineAdapter,
-  createHandler,
-  registerRouters,
-} from '../dist/index.js';
+import { Quilt, ExpressEngineAdapter, createHandler } from '../dist/index.js';
 
 test('ExpressEngineAdapter integrates Quilt with Express for GET + query', async () => {
   const app = express();
@@ -131,7 +126,7 @@ test('ExpressEngineAdapter applies QuiltResponse headers and contentType', async
   }
 });
 
-test('ExpressEngineAdapter works with registerRouters', async () => {
+test('ExpressEngineAdapter works with routing', async () => {
   const app = express();
   const quilt = new Quilt(new ExpressEngineAdapter({ app }));
 
@@ -141,20 +136,7 @@ test('ExpressEngineAdapter works with registerRouters', async () => {
     },
   });
 
-  const router = {
-    prefix: '',
-    getRoutes() {
-      return [
-        {
-          method: 'GET',
-          path: '/status',
-          handler: statusHandler,
-        },
-      ];
-    },
-  };
-
-  registerRouters(quilt, router);
+  quilt.get('/status', statusHandler);
 
   const server = app.listen(0);
   const { port } = server.address();
