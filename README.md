@@ -13,7 +13,7 @@ to sit cleanly on top of your HTTP server of choice.
 - Strong TypeScript types for handlers and their dependencies
 - Explicit dependency graph instead of “magic” middleware ordering
 - Framework abstraction via `ServerEngineAdapter` (Fastify and Express adapters included)
-- Simple routing via `Quilt` and `QuiltRouter`
+- Simple routing via `Quilt`
 - JSON and form-data support via your framework's middleware
 
 ---
@@ -59,13 +59,7 @@ adapters.
 
 ```ts
 import fastify from 'fastify';
-import {
-  Quilt,
-  FastifyEngineAdapter,
-  createHandler,
-  registerRouters,
-  type QuiltRouter,
-} from '@quiltjs/quilt';
+import { Quilt, FastifyEngineAdapter, createHandler } from '@quiltjs/quilt';
 
 const server = fastify();
 
@@ -78,21 +72,7 @@ const helloHandler = createHandler({
   },
 });
 
-class HelloRouter implements QuiltRouter {
-  readonly prefix = '/api';
-
-  getRoutes() {
-    return [
-      {
-        method: 'GET',
-        path: '/hello',
-        handler: helloHandler,
-      },
-    ];
-  }
-}
-
-registerRouters(quilt, new HelloRouter());
+quilt.get('/api/hello', helloHandler);
 
 await server.listen({ host: '0.0.0.0', port: 3000 });
 ```
