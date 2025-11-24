@@ -106,6 +106,9 @@ export function createHandler<
     // Wrap with QuiltResponse
     execute: async (req, deps, next) => {
       const result = await execute(req, deps, next);
+      if (result instanceof QuiltResponse) {
+        return result;
+      }
       return new QuiltResponse({
         status: 200,
         body: result,

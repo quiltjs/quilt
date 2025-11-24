@@ -80,3 +80,23 @@ test('executeHandler detects cyclic dependencies', async () => {
       err.message.includes('Cyclic dependency detected'),
   );
 });
+
+test('createHandler returns QuiltResponse when handler returns one', async () => {
+  const handler = createHandler({
+    execute: async () => {
+      return new QuiltResponse({
+        status: 201,
+        body: { ok: true },
+        headers: { 'x-quilt': 'core' },
+      });
+    },
+  });
+
+  const req = createEmptyRequest();
+  const response = await executeHandler(handler, req);
+
+  assert.ok(response instanceof QuiltResponse);
+  assert.equal(response.status, 201);
+  assert.deepEqual(response.body, { ok: true });
+  assert.equal(response.headers['x-quilt'], 'core');
+});

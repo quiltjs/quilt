@@ -178,3 +178,37 @@ test('FastifyEngineAdapter supports OPTIONS and HEAD', async () => {
     await app.close();
   }
 });
+
+test('FastifyEngineAdapter applies QuiltResponse headers and contentType', async () => {
+  const app = fastify();
+
+  const quilt = new Quilt(new FastifyEngineAdapter({ fastify: app }));
+
+  const handler = createHandler({
+    execute: async () => {
+      return new QuiltResponse({
+        status: 201,
+        body: 'ok',
+        headers: { 'x-quilt': 'fastify' },
+        contentType: 'text/plain',
+      });
+    },
+  });
+
+  quilt.get('/headers', handler);
+
+  const address = await app.listen({ port: 0 });
+  const url = new URL(address);
+
+  try {
+    const res = await fetch(`${url.origin}/headers`);
+    assert.equal(res.status, 201);
+    assert.equal(res.headers.get('x-quilt'), 'fastify');
+    const contentType = res.headers.get('content-type') ?? '';
+    assert.ok(contentType.includes('text/plain'));
+    const text = await res.text();
+    assert.equal(text.trim(), 'ok');
+  } finally {
+    await app.close();
+  }
+});

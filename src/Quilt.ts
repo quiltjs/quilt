@@ -44,6 +44,7 @@ export interface ServerEngineAdapter<RequestType, ResponseType> {
   listen(port: number, callback?: () => void): void;
   toQuiltRequest(
     req: RequestType,
+    res: ResponseType,
   ): Promise<SinglePartQuiltRequest | MultiPartQuiltRequest>;
   handleQuiltResponse(
     response: QuiltResponse,
@@ -134,7 +135,10 @@ export class Quilt {
   ): Promise<void> {
     const quiltResponse = await this.wrapWithErrorHandler(
       async () =>
-        await executeHandler(handler, await this.adapter.toQuiltRequest(req)),
+        await executeHandler(
+          handler,
+          await this.adapter.toQuiltRequest(req, res),
+        ),
     );
     await this.adapter.handleQuiltResponse(quiltResponse, res);
   }
@@ -144,6 +148,13 @@ export abstract class QuiltRequest {
   abstract headers: Record<string, string | string[] | undefined>;
   abstract params: Record<string, string | undefined>;
   abstract query: Record<string, string | undefined>;
+  raw?:
+    | {
+        framework: string;
+        request: unknown;
+        response: unknown;
+      }
+    | undefined;
 
   isMultipart(): this is MultiPartQuiltRequest {
     return false;
@@ -165,17 +176,26 @@ export class SinglePartQuiltRequest extends QuiltRequest {
     params,
     query,
     body,
+    raw,
   }: {
     headers: Record<string, string | string[] | undefined>;
     params: Record<string, string | undefined>;
     query: Record<string, string | undefined>;
     body: unknown;
+    raw?:
+      | {
+          framework: string;
+          request: unknown;
+          response: unknown;
+        }
+      | undefined;
   }) {
     super();
     this.headers = headers;
     this.params = params;
     this.query = query;
     this.body = body;
+    this.raw = raw;
   }
 
   isSinglePart(): this is SinglePartQuiltRequest {
@@ -194,17 +214,26 @@ export class MultiPartQuiltRequest extends QuiltRequest {
     params,
     query,
     fields,
+    raw,
   }: {
     headers: Record<string, string | string[] | undefined>;
     params: Record<string, string | undefined>;
     query: Record<string, string | undefined>;
     fields: Record<string, string | File>;
+    raw?:
+      | {
+          framework: string;
+          request: unknown;
+          response: unknown;
+        }
+      | undefined;
   }) {
     super();
     this.headers = headers;
     this.params = params;
     this.query = query;
     this.fields = fields;
+    this.raw = raw;
   }
 
   isMultipart(): this is MultiPartQuiltRequest {
@@ -212,12 +241,23 @@ export class MultiPartQuiltRequest extends QuiltRequest {
   }
 }
 
+export interface QuiltResponseInit {
+  status: number;
+  body?: any;
+  headers?: Record<string, string>;
+  contentType?: string;
+}
+
 export class QuiltResponse {
   status: number;
   body: any;
+  headers: Record<string, string>;
+  contentType?: string;
 
-  constructor({ status, body }: { status: number; body: any }) {
+  constructor({ status, body, headers, contentType }: QuiltResponseInit) {
     this.status = status;
     this.body = body;
+    this.headers = headers ?? {};
+    this.contentType = contentType;
   }
 }

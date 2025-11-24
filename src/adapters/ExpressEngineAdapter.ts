@@ -21,12 +21,20 @@ export class ExpressEngineAdapter
     this.app = app;
   }
 
-  public async toQuiltRequest(req: Request): Promise<SinglePartQuiltRequest> {
+  public async toQuiltRequest(
+    req: Request,
+    res: Response,
+  ): Promise<SinglePartQuiltRequest> {
     return new SinglePartQuiltRequest({
       headers: req.headers,
       params: req.params as Record<string, string | undefined>,
       query: req.query as Record<string, string | undefined>,
       body: req.body,
+      raw: {
+        framework: 'express',
+        request: req,
+        response: res,
+      },
     });
   }
 
@@ -84,7 +92,17 @@ export class ExpressEngineAdapter
   }
 
   public handleQuiltResponse(response: QuiltResponse, res: Response): any {
-    return res.status(response.status).send(response.body);
+    let expr = res.status(response.status);
+
+    for (const [key, value] of Object.entries(response.headers)) {
+      expr = expr.set(key, value);
+    }
+
+    if (response.contentType) {
+      expr = expr.type(response.contentType);
+    }
+
+    return expr.send(response.body);
   }
 
   public options(

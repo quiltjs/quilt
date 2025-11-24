@@ -42,12 +42,18 @@ export class NodeHttpEngineAdapter
 
   public async toQuiltRequest(
     req: NodeHttpRequest,
+    res: ServerResponse,
   ): Promise<SinglePartQuiltRequest> {
     return new SinglePartQuiltRequest({
       headers: req.headers,
       params: req.params,
       query: req.query,
       body: req.body,
+      raw: {
+        framework: 'node-http',
+        request: req,
+        response: res,
+      },
     });
   }
 
@@ -161,11 +167,38 @@ export class NodeHttpEngineAdapter
   ): void {
     if (!res.headersSent) {
       res.statusCode = response.status;
-      res.setHeader('content-type', 'application/json; charset=utf-8');
+      const hasContentTypeHeader =
+        'content-type' in response.headers ||
+        'Content-Type' in response.headers;
+
+      for (const [key, value] of Object.entries(response.headers)) {
+        res.setHeader(key, value);
+      }
+
+      if (response.contentType) {
+        res.setHeader('content-type', response.contentType);
+      } else if (!hasContentTypeHeader) {
+        res.setHeader('content-type', 'application/json; charset=utf-8');
+      }
     }
-    res.end(
-      response.body === undefined ? '' : JSON.stringify(response.body, null, 2),
-    );
+    let payload: string;
+    const isJson =
+      (response.contentType &&
+        response.contentType.includes('application/json')) ||
+      (!response.contentType &&
+        !('content-type' in response.headers) &&
+        !('Content-Type' in response.headers));
+
+    if (isJson) {
+      payload =
+        response.body === undefined
+          ? ''
+          : JSON.stringify(response.body, null, 2);
+    } else {
+      payload = response.body === undefined ? '' : String(response.body ?? '');
+    }
+
+    res.end(payload);
   }
 
   private findRoute(

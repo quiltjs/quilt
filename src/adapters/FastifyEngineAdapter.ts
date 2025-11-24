@@ -23,6 +23,7 @@ export class FastifyEngineAdapter
 
   public async toQuiltRequest(
     req: FastifyRequest,
+    res: FastifyReply,
   ): Promise<SinglePartQuiltRequest | MultiPartQuiltRequest> {
     const anyReq = req as any;
     if (typeof anyReq.isMultipart === 'function' && anyReq.isMultipart()) {
@@ -49,6 +50,11 @@ export class FastifyEngineAdapter
         params: req.params as Record<string, string | undefined>,
         query: req.query as Record<string, string | undefined>,
         fields,
+        raw: {
+          framework: 'fastify',
+          request: req,
+          response: res,
+        },
       });
     }
 
@@ -58,6 +64,11 @@ export class FastifyEngineAdapter
       params: req.params as Record<string, string | undefined>,
       query: req.query as Record<string, string | undefined>,
       body: req.body,
+      raw: {
+        framework: 'fastify',
+        request: req,
+        response: res,
+      },
     });
   }
 
@@ -135,6 +146,16 @@ export class FastifyEngineAdapter
   }
 
   handleQuiltResponse(response: QuiltResponse, res: FastifyReply): any {
-    return res.code(response.status).send(response.body);
+    let reply = res.code(response.status);
+
+    for (const [key, value] of Object.entries(response.headers)) {
+      reply = reply.header(key, value);
+    }
+
+    if (response.contentType) {
+      reply = reply.type(response.contentType);
+    }
+
+    return reply.send(response.body);
   }
 }

@@ -185,3 +185,38 @@ test('NodeHttpEngineAdapter supports OPTIONS and HEAD', async () => {
 
   await adapter.close();
 });
+
+test('NodeHttpEngineAdapter applies QuiltResponse headers and contentType', async () => {
+  const adapter = new NodeHttpEngineAdapter();
+  const quilt = new Quilt(adapter);
+
+  const handler = createHandler({
+    execute: async () => {
+      return new QuiltResponse({
+        status: 201,
+        body: 'ok',
+        headers: { 'x-quilt': 'node-http' },
+        contentType: 'text/plain',
+      });
+    },
+  });
+
+  quilt.get('/headers', handler);
+
+  await new Promise((resolve) => {
+    adapter.listen(0, resolve);
+  });
+
+  const port = adapter.getPort();
+  assert.ok(typeof port === 'number');
+
+  const res = await fetch(`http://localhost:${port}/headers`);
+  assert.equal(res.status, 201);
+  assert.equal(res.headers.get('x-quilt'), 'node-http');
+  const contentType = res.headers.get('content-type') ?? '';
+  assert.ok(contentType.includes('text/plain'));
+  const text = await res.text();
+  assert.equal(text.trim(), 'ok');
+
+  await adapter.close();
+});

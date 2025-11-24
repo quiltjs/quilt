@@ -1,10 +1,10 @@
-# @quiltjs/quilt ✨
+# @quiltjs/quilt 🧵
 
 <p align="center">
   <img src="assets/quilt.png" alt="Quilt logo" width="160" />
 </p>
 
-Lightweight, type-safe request handling and routing for Node HTTP servers, with first-class Fastify and Express support. 🧵
+Lightweight, type-safe request handling and routing for Node HTTP servers, with first-class Fastify and Express support.
 
 `@quiltjs/quilt` lets you build HTTP APIs from small, composable, strongly-typed “handlers”
 instead of ad-hoc middleware that mutates `req`/`res`. It is designed to be framework-agnostic and
@@ -28,7 +28,7 @@ Quilt gives you a clearer alternative to traditional middleware. Instead of rely
 - Consistent request/response model — JSON, URL-encoded, and multipart handled the same way.
 - Composable by design — auth, loading, validation, and business logic stay small and reusable.
 
-If you want strong types and predictable composition without adopting a whole new framework, Quilt is designed for exactly that. 💪
+If you want strong types and predictable composition without adopting a whole new framework, Quilt is designed for exactly that.
 
 ---
 
@@ -253,7 +253,7 @@ Quilt introduces a small set of request/response types:
 - `QuiltRequest` – base request type
 - `SinglePartQuiltRequest` – JSON/URL-encoded request with a `body`
 - `MultiPartQuiltRequest` – multipart/form-data with text fields and `File`s
-- `QuiltResponse` – wraps an HTTP status and response body
+- `QuiltResponse` – wraps an HTTP status, response body, optional headers, and an optional `contentType`
 
 The Fastify adapter converts:
 
@@ -261,9 +261,10 @@ The Fastify adapter converts:
 - Multipart form-data into `MultiPartQuiltRequest.fields`
 
 `createHandler` automatically wraps your return value in a `QuiltResponse` with status `200`. If you
-need full control, you can construct and return a `QuiltResponse` yourself inside the handler chain.
+need full control, you can construct and return a `QuiltResponse` yourself inside the handler chain (to
+override status, headers, or content type).
 
-### Routing 🗺️
+### Routing
 
 Routing is done via `Quilt` and `QuiltRouter`:
 

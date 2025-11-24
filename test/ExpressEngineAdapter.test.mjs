@@ -101,6 +101,45 @@ test('ExpressEngineAdapter respects Quilt error handler', async () => {
   }
 });
 
+test('ExpressEngineAdapter applies QuiltResponse headers and contentType', async () => {
+  const app = express();
+  const quilt = new Quilt(new ExpressEngineAdapter({ app }));
+
+  const handler = createHandler({
+    execute: async () => {
+      return new QuiltResponse({
+        status: 201,
+        body: 'ok',
+        headers: { 'x-quilt': 'express' },
+        contentType: 'text/plain',
+      });
+    },
+  });
+
+  quilt.get('/headers', handler);
+
+  const server = app.listen(0);
+  const address = server.address();
+
+  try {
+    if (typeof address !== 'object' || address === null) {
+      throw new Error('Failed to obtain server address');
+    }
+
+    const port = address.port;
+
+    const res = await fetch(`http://127.0.0.1:${port}/headers`);
+    assert.equal(res.status, 201);
+    assert.equal(res.headers.get('x-quilt'), 'express');
+    const contentType = res.headers.get('content-type') ?? '';
+    assert.ok(contentType.includes('text/plain'));
+    const text = await res.text();
+    assert.equal(text.trim(), 'ok');
+  } finally {
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
 test('ExpressEngineAdapter works with registerRouters', async () => {
   const app = express();
   const quilt = new Quilt(new ExpressEngineAdapter({ app }));
