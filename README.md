@@ -153,17 +153,17 @@ A **handler** is a small unit of work that:
 - Optionally depends on other handlers
 - Produces an output that downstream handlers can consume
 
-You usually create handlers via `createMiddlewareHandler` or `createHandler`.
+You usually create handlers via `createHandler`.
 
 ```ts
-import { createMiddlewareHandler, createHandler } from '@quiltjs/quilt';
+import { createHandler } from '@quiltjs/quilt';
 
 type RequestContext = {
   headers: Record<string, string | string[] | undefined>;
 };
 
 // Middleware-style handler that performs auth and returns user info
-const authHandler = createMiddlewareHandler({
+const authHandler = createHandler({
   id: 'auth',
   execute: async (ctx: RequestContext) => {
     const userId = ctx.headers['x-user-id'];

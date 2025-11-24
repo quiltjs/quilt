@@ -42,40 +42,10 @@ export type Handler<
 };
 
 /**
- * Creates a handler that depends on other handlers.
- *
- * This is typically used for "middleware-like" handlers that produce
- * values used by other handlers.
- */
-export function createMiddlewareHandler<
-  O = any,
-  Ctx = any,
-  D extends Record<string, Handler<any, Ctx, any>> = {},
->({
-  id,
-  execute,
-  dependencies,
-}: {
-  id?: string;
-  execute: (
-    ctx: Ctx,
-    deps: HandlerOutputs<D>,
-    next: (value?: O) => Promise<O>,
-  ) => Promise<O> | O;
-  dependencies?: D;
-}): Handler<O, Ctx, D> {
-  return {
-    id,
-    dependencies: (dependencies || {}) as D,
-    execute,
-  };
-}
-
-/**
  * Creates a "terminal" handler in a dependency graph.
  *
- * This behaves the same as `createMiddlewareHandler` but is intended for
- * route or use-case handlers at the edge of the system.
+ * Works for both "middleware-like" handlers (that produce values for others)
+ * and "terminal" handlers at the edge of the system.
  */
 export function createHandler<
   O = any,

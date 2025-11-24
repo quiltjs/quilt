@@ -1,21 +1,17 @@
-import {
-  createHandler,
-  createMiddlewareHandler,
-  type Handler,
-} from '../src/Handler.js';
+import { createHandler, type Handler } from '../src/Handler.js';
 
 type RequestContext = {
   requestId: string;
 };
 
-const requestIdHandler = createMiddlewareHandler({
+const requestIdHandler = createHandler({
   id: 'requestId',
   execute: async (ctx: RequestContext) => {
     return ctx.requestId;
   },
 });
 
-const userHandler = createMiddlewareHandler({
+const userHandler = createHandler({
   id: 'user',
   dependencies: { requestId: requestIdHandler },
   execute: async (_ctx: RequestContext, deps) => {
@@ -23,11 +19,13 @@ const userHandler = createMiddlewareHandler({
     const ok: string = fromDeps;
     // @ts-expect-error requestId is a string, not a number
     const bad: number = fromDeps;
+    void ok;
+    void bad;
     return { id: fromDeps };
   },
 });
 
-const routeHandler: Handler<
+export const routeHandler: Handler<
   void,
   RequestContext,
   { user: typeof userHandler }
@@ -37,6 +35,8 @@ const routeHandler: Handler<
     const userId: string = deps.user.id;
     // @ts-expect-error user.id is a string, not a number
     const bad: number = deps.user.id;
+    void userId;
+    void bad;
     return;
   },
 });

@@ -1,16 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import {
-  createHandler,
-  createMiddlewareHandler,
-  executeHandler,
-} from '../dist/index.js';
+import { createHandler, executeHandler } from '../dist/index.js';
 
 test('executeHandler runs dependency graph in order and caches outputs', async () => {
   const ctx = { calls: [], result: undefined };
 
-  const handlerA = createMiddlewareHandler({
+  const handlerA = createHandler({
     id: 'a',
     execute: async (context) => {
       context.calls.push('a');
@@ -18,7 +14,7 @@ test('executeHandler runs dependency graph in order and caches outputs', async (
     },
   });
 
-  const handlerB = createMiddlewareHandler({
+  const handlerB = createHandler({
     id: 'b',
     dependencies: { a: handlerA },
     execute: async (context, deps) => {
@@ -42,12 +38,12 @@ test('executeHandler runs dependency graph in order and caches outputs', async (
 });
 
 test('executeHandler detects cyclic dependencies', async () => {
-  const handlerA = createMiddlewareHandler({
+  const handlerA = createHandler({
     id: 'A',
     execute: async () => 'A',
   });
 
-  const handlerB = createMiddlewareHandler({
+  const handlerB = createHandler({
     id: 'B',
     dependencies: { a: handlerA },
     execute: async () => 'B',
