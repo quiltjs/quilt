@@ -301,63 +301,29 @@ registerRouters(quilt, new HealthRouter());
 
 ---
 
-## Error handling 🚨
+## Error handling
 
 You can centralize error handling with `Quilt#setErrorHandler`.
 
 ```ts
-import { Quilt, QuiltResponse } from '@quiltjs/quilt';
+import { FastifyEngineAdapter, Quilt } from '@quiltjs/quilt';
 
 const quilt = new Quilt(new FastifyEngineAdapter({ fastify: server }));
 
-quilt.setErrorHandler((error: Error) => {
+quilt.setErrorHandler((error: Error, { res }) => {
   // Map domain errors to HTTP responses
   if (error.message === 'Unauthorized') {
-    return new QuiltResponse({ status: 401, body: { error: 'Unauthorized' } });
+    res.code(401).send({ error: 'Unauthorized' });
+    return;
   }
 
   console.error(error);
-  return new QuiltResponse({
-    status: 500,
-    body: { error: 'Internal Server Error' },
-  });
+  res.code(500).send({ error: 'Internal Server Error' });
 });
 ```
 
-Any uncaught error thrown from a handler chain will be passed to the error handler and translated
-into a `QuiltResponse`.
-
----
-
-## Multipart example 📎
-
-If your adapter maps multipart/form-data requests into a `MultiPartQuiltRequest`
-instance (for example, in a custom Fastify adapter that wraps `@fastify/multipart`),
-you can handle file uploads like this:
-
-```ts
-import {
-  createHandler,
-  MultiPartQuiltRequest,
-  QuiltRequest,
-} from '@quiltjs/quilt';
-
-const uploadHandler = createHandler({
-  execute: async (req: QuiltRequest) => {
-    if (!req.isMultipart()) {
-      return { error: 'Expected multipart/form-data' };
-    }
-
-    const fileField = req.fields['file'];
-    if (!fileField || fileField instanceof String) {
-      return { error: 'Missing file' };
-    }
-
-    // fileField is a `File` instance
-    return { filename: fileField.name, size: fileField.size };
-  },
-});
-```
+Any uncaught error thrown from a handler chain will be passed to the error handler and you can use
+the underlying framework response object to generate an appropriate HTTP response.
 
 ---
 
