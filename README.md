@@ -1,4 +1,4 @@
-# @quiltjs/quilt 🧵
+# @quiltjs/quilt
 
 <p align="center">
   <img src="assets/quilt.png" alt="Quilt logo" width="160" />
@@ -10,15 +10,15 @@ Lightweight, type-safe request handling and routing for Node HTTP servers, with 
 instead of ad-hoc middleware that mutates `req`/`res`. It is designed to be framework-agnostic and
 to sit cleanly on top of your HTTP server of choice.
 
-- 🧠 Strong TypeScript types for handlers and their dependencies
-- 🧩 Explicit dependency graph instead of “magic” middleware ordering
-- 🔌 Framework abstraction via `ServerEngineAdapter` (Fastify and Express adapters included)
-- 🧭 Simple routing via `Quilt` and `QuiltRouter`
-- 📦 JSON and form-data support via your framework's middleware
+- Strong TypeScript types for handlers and their dependencies
+- Explicit dependency graph instead of “magic” middleware ordering
+- Framework abstraction via `ServerEngineAdapter` (Fastify and Express adapters included)
+- Simple routing via `Quilt` and `QuiltRouter`
+- JSON and form-data support via your framework's middleware
 
 ---
 
-## Why Quilt? 🤔
+## Why Quilt?
 
 Quilt gives you a clearer alternative to traditional middleware. Instead of relying on ordering and mutation, you build request logic from small, typed handlers with explicit dependencies. No decorators, no global DI, no FP overhead — just predictable composition.
 
@@ -32,7 +32,7 @@ If you want strong types and predictable composition without adopting a whole ne
 
 ---
 
-## Installation 📦
+## Installation
 
 Fastify:
 
@@ -55,7 +55,7 @@ adapters.
 
 ---
 
-## Quick start (Fastify) ⚡
+## Quick start (Fastify)
 
 ```ts
 import fastify from 'fastify';
@@ -105,7 +105,7 @@ Now `GET /api/hello?name=Quilt` returns:
 
 ---
 
-## Quick start (Express) 🚂
+## Quick start (Express)
 
 ```ts
 import express from 'express';
@@ -124,7 +124,6 @@ const quilt = new Quilt(new ExpressEngineAdapter({ app }));
 
 const helloHandler = createHandler({
   execute: async ({ req, res }) => {
-    return { message: `Hello, ${req.query.name ?? 'world'}!` };
     res.status(200).json({
       message: `Hello, ${req.query.name ?? 'world'}!`,
     });
@@ -154,7 +153,7 @@ quilt.listen(3000, () => {
 
 ---
 
-## Quick start (Node http) 🧱
+## Quick start (Node http)
 
 ```ts
 import http from 'node:http';
@@ -170,8 +169,14 @@ const adapter = new NodeHttpEngineAdapter();
 const quilt = new Quilt(adapter);
 
 const helloHandler = createHandler({
-  execute: async (req) => {
-    return { message: `Hello, ${req.query.name ?? 'world'}!` };
+  execute: async ({ req, res }) => {
+    res.statusCode = 200;
+    res.setHeader('content-type', 'application/json; charset=utf-8');
+    res.end(
+      JSON.stringify({
+        message: `Hello, ${req.query.name ?? 'world'}!`,
+      }),
+    );
   },
 });
 
@@ -198,30 +203,30 @@ adapter.listen(3000, () => {
 
 ---
 
-## Core concepts 🧠
+## Core concepts
 
-### Handlers 🧱
+### Handlers
 
 A **handler** is a small unit of work that:
 
-- Receives a `QuiltRequest` (or subtype)
+- Receives a context object (for HTTP adapters this is `{ req, res }`)
 - Optionally depends on other handlers
-- Returns a value that can be consumed by downstream handlers
+- Produces an output that downstream handlers can consume
 
 You usually create handlers via `createMiddlewareHandler` or `createHandler`.
 
 ```ts
-import {
-  createMiddlewareHandler,
-  createHandler,
-  type QuiltRequest,
-} from '@quiltjs/quilt';
+import { createMiddlewareHandler, createHandler } from '@quiltjs/quilt';
+
+type RequestContext = {
+  headers: Record<string, string | string[] | undefined>;
+};
 
 // Middleware-style handler that performs auth and returns user info
 const authHandler = createMiddlewareHandler({
   id: 'auth',
-  execute: async (req: QuiltRequest) => {
-    const userId = req.headers['x-user-id'];
+  execute: async (ctx: RequestContext) => {
+    const userId = ctx.headers['x-user-id'];
     if (!userId || Array.isArray(userId)) {
       throw new Error('Unauthorized');
     }
@@ -229,10 +234,10 @@ const authHandler = createMiddlewareHandler({
   },
 });
 
-// Route handler that depends on authHandler
+// Handler that depends on authHandler
 const profileHandler = createHandler({
   dependencies: { auth: authHandler },
-  execute: async (_req, deps) => {
+  execute: async (_ctx, deps) => {
     return {
       profileId: deps.auth.userId,
       name: 'Jane Doe',
@@ -247,7 +252,7 @@ Handlers form a directed acyclic graph. Quilt:
 - Ensures each handler runs at most once per request
 - Caches outputs and injects them into downstream handlers as `deps`
 
-### Requests and responses 📥📤
+### Requests and responses
 
 In practice you will usually model your **own** application-level input/output types and treat
 handlers as an orchestration layer:
