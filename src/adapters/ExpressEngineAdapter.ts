@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Express, Request, Response } from 'express';
 import type { HttpContext, ServerEngineAdapter } from '../Quilt.js';
+import type { Handler } from '../Handler.js';
 
 /**
  * Adapter that implements the ServerEngineAdapter interface using Express.
@@ -81,3 +82,13 @@ export class ExpressEngineAdapter
 }
 
 export type ExpressHttpContext = HttpContext<Request, Response>;
+
+export type ExpressHandler<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  O = any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  D extends Record<string, Handler<any, ExpressHttpContext, any>> = Record<
+    string,
+    Handler<any, ExpressHttpContext, any>
+  >,
+> = Handler<O, ExpressHttpContext, D>;

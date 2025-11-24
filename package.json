@@ -26,7 +26,8 @@
     "prepublishOnly": "npm run build",
     "watch": "tsc -w -p tsconfig.json",
     "test": "npm run build && node --test test",
-    "test:types": "tsc -p test-types/tsconfig.json"
+    "test:types": "tsc -p test-types/tsconfig.json",
+    "bench": "node benchmarks/handler-overhead.mjs"
   },
   "keywords": [
     "quilt",

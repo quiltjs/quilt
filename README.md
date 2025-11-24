@@ -40,7 +40,6 @@ with a small, typed dependency graph:
 
 ```ts
 const authHandler = createHandler({
-  id: 'auth',
   execute: async ({ req }) => {
     const userId = req.headers['x-user-id'];
     if (!userId || Array.isArray(userId)) {
@@ -129,6 +128,8 @@ Types:
 - `Handler<O, Ctx, D>` – typed description of a handler’s output, context, and dependencies.
 - `HandlerOutputs<D>` – maps a handler’s `dependencies` to the inferred `deps` type.
 - `HttpContext<Req, Res>` – convenience type for `{ req, res }` contexts.
+- `FastifyHandler` / `ExpressHandler` – handler aliases for the Fastify and Express HTTP contexts.
+- `NodeHttpHandlerContext` / `NodeHttpHandler` – helpers for Node HTTP contexts with typed `params`, `query`, and `body`.
 - `HTTPMethod` – union of supported HTTP methods.
 - `ServerEngineAdapter<Req, Res>` – interface adapters implement to plug Quilt into different HTTP engines.
 
@@ -370,7 +371,6 @@ type RequestContext = {
 
 // Middleware-style handler that performs auth and returns user info
 const authHandler = createHandler({
-  id: 'auth',
   execute: async (ctx: RequestContext) => {
     const userId = ctx.headers['x-user-id'];
     if (!userId || Array.isArray(userId)) {
@@ -409,12 +409,10 @@ import { createHandler, type Handler } from '@quiltjs/quilt';
 type RequestContext = { requestId: string };
 
 const requestIdHandler = createHandler({
-  id: 'requestId',
   execute: async (ctx: RequestContext) => ctx.requestId,
 });
 
 const userHandler = createHandler({
-  id: 'user',
   dependencies: { requestId: requestIdHandler },
   execute: async (_ctx: RequestContext, deps) => {
     // deps.requestId is inferred as string
@@ -513,7 +511,6 @@ import { z } from 'zod';
 
 // 1. Auth: derive user id from the request
 const authHandler = createHandler({
-  id: 'auth',
   execute: async ({ req }) => {
     const userId = req.headers['x-user-id'];
     if (!userId || Array.isArray(userId)) {
@@ -616,6 +613,55 @@ Fastify and Express support are provided out of the box via `FastifyEngineAdapte
 `ServerEngineAdapter<RequestType, ResponseType>` yourself.
 
 ---
+
+## Observability
+
+### Handler hooks
+
+Both `executeHandler` and `Quilt` expose lightweight hooks you can use for logging, metrics, or tracing.
+
+- `executeHandler(handler, ctx, hooks)` accepts an optional `ExecuteHandlerHooks<Ctx>`.
+- `Quilt` instances support `quilt.setHooks(hooks)`, where `hooks` has the same shape as `ExecuteHandlerHooks<HttpContext<Req, Res>>`.
+
+Hooks are called once per handler execution with basic timing information:
+
+- `onHandlerStart({ handler, ctx })`
+- `onHandlerSuccess({ handler, ctx, durationMs, output })`
+- `onHandlerError({ handler, ctx, durationMs, error })`
+
+Example (Fastify):
+
+```ts
+import fastify from 'fastify';
+import { Quilt, FastifyEngineAdapter, createHandler } from '@quiltjs/quilt';
+
+const app = fastify();
+const quilt = new Quilt(new FastifyEngineAdapter({ fastify: app }));
+
+quilt.setHooks({
+  onHandlerSuccess: ({ durationMs }) => {
+    console.log(`[quilt] handler took ${durationMs.toFixed(3)}ms`);
+  },
+});
+
+const helloHandler = createHandler({
+  execute: async ({ req, res }) => {
+    res.code(200).send({ message: `Hello, ${req.query.name ?? 'world'}!` });
+  },
+});
+
+quilt.get('/api/hello', helloHandler);
+```
+
+If you use `executeHandler` directly (outside HTTP), you can pass `hooks` as the third argument:
+
+```ts
+await executeHandler(handler, ctx, {
+  onHandlerSuccess: ({ durationMs }) => {
+    console.log('handler finished in', durationMs, 'ms');
+  },
+});
+```
 
 ## TypeScript configuration
 

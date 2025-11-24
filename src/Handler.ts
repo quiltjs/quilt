@@ -18,14 +18,12 @@ export type HandlerOutputs<
 export type Handler<
   O,
   Ctx,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/ban-types
-  D extends Record<string, Handler<any, Ctx, any>> = {},
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  D extends Record<string, Handler<any, Ctx, any>> = Record<
+    string,
+    Handler<any, Ctx, any>
+  >,
 > = {
-  /**
-   * Optional id for caching; two handlers with the same id will be treated
-   * as the same handler within a single execution context.
-   */
-  id?: string;
   /**
    * Named dependency handlers. Their outputs are made available to this
    * handler as the `deps` parameter.
@@ -51,19 +49,19 @@ export function createHandler<
   O = any,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   Ctx = any,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/ban-types
-  D extends Record<string, Handler<any, Ctx, any>> = {},
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  D extends Record<string, Handler<any, Ctx, any>> = Record<
+    string,
+    Handler<any, Ctx, any>
+  >,
 >({
-  id,
   execute,
   dependencies,
 }: {
-  id?: string;
   execute: (ctx: Ctx, deps: HandlerOutputs<D>) => Promise<O> | O;
   dependencies?: D;
 }): Handler<O, Ctx, D> {
   return {
-    id,
     dependencies: (dependencies || {}) as D,
     execute,
   };

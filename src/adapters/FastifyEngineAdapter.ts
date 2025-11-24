@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { HttpContext, ServerEngineAdapter } from '../Quilt.js';
+import type { Handler } from '../Handler.js';
 
 /**
  * Adapter that implements the ServerEngine interface using Fastify.
@@ -79,3 +80,13 @@ export class FastifyEngineAdapter
 }
 
 export type FastifyHttpContext = HttpContext<FastifyRequest, FastifyReply>;
+
+export type FastifyHandler<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  O = any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  D extends Record<string, Handler<any, FastifyHttpContext, any>> = Record<
+    string,
+    Handler<any, FastifyHttpContext, any>
+  >,
+> = Handler<O, FastifyHttpContext, D>;

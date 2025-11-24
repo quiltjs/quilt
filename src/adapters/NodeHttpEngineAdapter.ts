@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import http, { type IncomingMessage, type ServerResponse } from 'node:http';
 import type { HTTPMethod, HttpContext, ServerEngineAdapter } from '../Quilt.js';
+import type { Handler } from '../Handler.js';
 
 export type NodeHttpRequest = IncomingMessage & {
   params: Record<string, string | undefined>;
@@ -8,7 +9,7 @@ export type NodeHttpRequest = IncomingMessage & {
   body: unknown;
 };
 
-type NodeHttpHandler = (
+type NodeHttpRouteHandler = (
   req: NodeHttpRequest,
   res: ServerResponse,
 ) => Promise<void>;
@@ -16,7 +17,7 @@ type NodeHttpHandler = (
 interface RouteDefinition {
   method: HTTPMethod;
   path: string;
-  handler: NodeHttpHandler;
+  handler: NodeHttpRouteHandler;
 }
 
 /**
@@ -35,31 +36,31 @@ export class NodeHttpEngineAdapter
   private server: http.Server | undefined;
   private port: number | undefined;
 
-  public get(path: string, handler: NodeHttpHandler): void {
+  public get(path: string, handler: NodeHttpRouteHandler): void {
     this.routes.push({ method: 'GET', path, handler });
   }
 
-  public post(path: string, handler: NodeHttpHandler): void {
+  public post(path: string, handler: NodeHttpRouteHandler): void {
     this.routes.push({ method: 'POST', path, handler });
   }
 
-  public put(path: string, handler: NodeHttpHandler): void {
+  public put(path: string, handler: NodeHttpRouteHandler): void {
     this.routes.push({ method: 'PUT', path, handler });
   }
 
-  public patch(path: string, handler: NodeHttpHandler): void {
+  public patch(path: string, handler: NodeHttpRouteHandler): void {
     this.routes.push({ method: 'PATCH', path, handler });
   }
 
-  public delete(path: string, handler: NodeHttpHandler): void {
+  public delete(path: string, handler: NodeHttpRouteHandler): void {
     this.routes.push({ method: 'DELETE', path, handler });
   }
 
-  public options(path: string, handler: NodeHttpHandler): void {
+  public options(path: string, handler: NodeHttpRouteHandler): void {
     this.routes.push({ method: 'OPTIONS', path, handler });
   }
 
-  public head(path: string, handler: NodeHttpHandler): void {
+  public head(path: string, handler: NodeHttpRouteHandler): void {
     this.routes.push({ method: 'HEAD', path, handler });
   }
 
@@ -225,3 +226,45 @@ export class NodeHttpEngineAdapter
 }
 
 export type NodeHttpContext = HttpContext<NodeHttpRequest, ServerResponse>;
+
+export type NodeHttpHandlerContext<
+  Params extends Record<string, string | undefined> = Record<
+    string,
+    string | undefined
+  >,
+  Query extends Record<string, string | undefined> = Record<
+    string,
+    string | undefined
+  >,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Body = any,
+> = HttpContext<
+  NodeHttpRequest & {
+    params: Params;
+    query: Query;
+    body: Body;
+  },
+  ServerResponse
+>;
+
+export type NodeHttpHandler<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  O = any,
+  Params extends Record<string, string | undefined> = Record<
+    string,
+    string | undefined
+  >,
+  Query extends Record<string, string | undefined> = Record<
+    string,
+    string | undefined
+  >,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  Body = any,
+  D extends Record<
+    string,
+    Handler<any, NodeHttpHandlerContext<Params, Query, Body>, any>
+  > = Record<
+    string,
+    Handler<any, NodeHttpHandlerContext<Params, Query, Body>, any>
+  >,
+> = Handler<O, NodeHttpHandlerContext<Params, Query, Body>, D>;

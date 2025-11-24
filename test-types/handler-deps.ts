@@ -5,14 +5,12 @@ type RequestContext = {
 };
 
 const requestIdHandler = createHandler({
-  id: 'requestId',
   execute: async (ctx: RequestContext) => {
     return ctx.requestId;
   },
 });
 
 const userHandler = createHandler({
-  id: 'user',
   dependencies: { requestId: requestIdHandler },
   execute: async (_ctx: RequestContext, deps) => {
     const fromDeps = deps.requestId;

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Handler } from './Handler.js';
-import { executeHandler } from './executeHandler.js';
+import { executeHandler, type ExecuteHandlerHooks } from './executeHandler.js';
 
 export type HTTPMethod =
   | 'GET'
@@ -47,6 +47,10 @@ export type HttpContext<RequestType, ResponseType> = {
   res: ResponseType;
 };
 
+export type QuiltHooks<RequestType, ResponseType> = ExecuteHandlerHooks<
+  HttpContext<RequestType, ResponseType>
+>;
+
 type ErrorHandler<RequestType, ResponseType> = (
   error: Error,
   ctx: HttpContext<RequestType, ResponseType>,
@@ -55,6 +59,7 @@ type ErrorHandler<RequestType, ResponseType> = (
 export class Quilt<RequestType = any, ResponseType = any> {
   private adapter: ServerEngineAdapter<RequestType, ResponseType>;
   private errorHandler?: ErrorHandler<RequestType, ResponseType>;
+  private hooks?: QuiltHooks<RequestType, ResponseType>;
 
   constructor(adapter: ServerEngineAdapter<RequestType, ResponseType>) {
     this.adapter = adapter;
@@ -129,17 +134,21 @@ export class Quilt<RequestType = any, ResponseType = any> {
     this.errorHandler = errorHandler;
   }
 
+  public setHooks(hooks: QuiltHooks<RequestType, ResponseType>): void {
+    this.hooks = hooks;
+  }
+
   private async handleRequest(
     ctx: HttpContext<RequestType, ResponseType>,
     handler: Handler<any, HttpContext<RequestType, ResponseType>, any>,
   ): Promise<void> {
     if (!this.errorHandler) {
-      await executeHandler(handler, ctx);
+      await executeHandler(handler, ctx, this.hooks);
       return;
     }
 
     try {
-      await executeHandler(handler, ctx);
+      await executeHandler(handler, ctx, this.hooks);
     } catch (error) {
       if (error instanceof Error) {
         await this.errorHandler(error, ctx);

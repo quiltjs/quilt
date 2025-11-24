@@ -75,6 +75,43 @@ test('NodeHttpEngineAdapter maps params and body for POST', async () => {
   }
 });
 
+test('NodeHttpEngineAdapter returns raw body for invalid JSON', async () => {
+  const adapter = new NodeHttpEngineAdapter();
+  const quilt = new Quilt(adapter);
+
+  let seenBody;
+
+  const handler = createHandler({
+    execute: async ({ req, res }) => {
+      seenBody = req.body;
+      res.statusCode = 200;
+      res.end();
+    },
+  });
+
+  quilt.post('/raw', handler);
+
+  await new Promise((resolve) => {
+    adapter.listen(0, resolve);
+  });
+
+  const port = adapter.getPort();
+  assert.ok(typeof port === 'number');
+
+  try {
+    const res = await fetch(`http://localhost:${port}/raw`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: 'not-json',
+    });
+
+    assert.equal(res.status, 200);
+    assert.equal(seenBody, 'not-json');
+  } finally {
+    await adapter.close();
+  }
+});
+
 test('NodeHttpEngineAdapter respects Quilt error handler', async () => {
   const adapter = new NodeHttpEngineAdapter();
   const quilt = new Quilt(adapter);
