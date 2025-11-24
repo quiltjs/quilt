@@ -1,7 +1,7 @@
 # @quiltjs/quilt ✨
 
 <p align="center">
-  <img src="assets/quilt.svg" alt="Quilt logo" width="160" />
+  <img src="assets/quilt.png" alt="Quilt logo" width="160" />
 </p>
 
 Lightweight, type-safe request handling and routing for Node HTTP servers, with first-class Fastify and Express support. 🧵
