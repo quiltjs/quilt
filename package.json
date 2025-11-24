@@ -25,7 +25,8 @@
     "compile": "tsc -p tsconfig.json",
     "prepublishOnly": "npm run build",
     "watch": "tsc -w -p tsconfig.json",
-    "test": "npm run build && node --test test"
+    "test": "npm run build && node --test test",
+    "test:types": "tsc -p test-types/tsconfig.json"
   },
   "keywords": [
     "quilt",
