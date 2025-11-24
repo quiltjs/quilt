@@ -4,16 +4,18 @@ import fastify, {
   type FastifyRequest,
 } from 'fastify';
 
-import { Quilt } from '../src/Quilt.js';
-import { FastifyEngineAdapter } from '../src/adapters/FastifyEngineAdapter.js';
-import { createHandler } from '../src/Handler.js';
+import {
+  FastifyEngineAdapter,
+  type FastifyHttpContext,
+} from '../src/adapters/FastifyEngineAdapter.js';
+import { Quilt, createHandler } from '../src/index.js';
 
 const app: FastifyInstance = fastify();
 
 const quilt = new Quilt(new FastifyEngineAdapter({ fastify: app }));
 
 const fastifyHandler = createHandler({
-  execute: async (ctx: { req: FastifyRequest; res: FastifyReply }) => {
+  execute: async (ctx: FastifyHttpContext) => {
     const reqOk: FastifyRequest = ctx.req;
     const resOk: FastifyReply = ctx.res;
     void reqOk;
@@ -29,4 +31,3 @@ const fastifyHandler = createHandler({
 });
 
 quilt.get('/type-test-fastify', fastifyHandler);
-

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Handler, HandlerOutputs } from './Handler.js';
 
 /**
@@ -10,6 +11,7 @@ import { Handler, HandlerOutputs } from './Handler.js';
  */
 export async function executeHandler<
   Ctx,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   D extends Record<string, Handler<any, Ctx, any>>,
 >(handler: Handler<any, Ctx, D>, ctx: Ctx): Promise<void> {
   // Cache to store handler outputs
@@ -63,13 +65,10 @@ export async function executeHandler<
     return flatOrder;
   }
 
-  /**
-   * Executes handlers recursively, using next() to encapsulate recursive calls.
-   */
-  async function next(currentHandlerIndex: number): Promise<any> {
-    const currentHandler = flatOrder[currentHandlerIndex];
-    if (!currentHandler) return;
+  // Flatten the dependency tree (with cycle detection) and execute handlers in order
+  const flatOrder = flattenDependencies(handler);
 
+  for (const currentHandler of flatOrder) {
     const depsOutputs = {} as HandlerOutputs<any>;
     for (const [depKey, depHandler] of Object.entries(
       currentHandler.dependencies,
@@ -79,34 +78,7 @@ export async function executeHandler<
       );
     }
 
-    let calledNext = false;
-
-    // Check if cached
-    if (cache.has(getHandlerKey(currentHandler))) {
-      return await next(currentHandlerIndex + 1);
-    }
-
-    const outputs = await currentHandler.execute(
-      ctx,
-      depsOutputs,
-      async (value?: any) => {
-        // If next() is called with a value, cache it and continue execution
-        calledNext = true;
-        if (value !== undefined) {
-          cache.set(getHandlerKey(currentHandler), value);
-        }
-
-        return await next(currentHandlerIndex + 1);
-      },
-    );
-
-    if (!calledNext) {
-      cache.set(getHandlerKey(currentHandler), outputs);
-      return await next(currentHandlerIndex + 1);
-    }
+    const outputs = await currentHandler.execute(ctx, depsOutputs);
+    cache.set(getHandlerKey(currentHandler), outputs);
   }
-
-  // Flatten the dependency tree (with cycle detection) and execute handlers in order
-  const flatOrder = flattenDependencies(handler);
-  await next(0);
 }

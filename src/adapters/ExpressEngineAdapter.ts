@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Express, Request, Response } from 'express';
-import { type ServerEngineAdapter } from '../Quilt.js';
+import type { HttpContext, ServerEngineAdapter } from '../Quilt.js';
 
 /**
  * Adapter that implements the ServerEngineAdapter interface using Express.
@@ -61,15 +61,6 @@ export class ExpressEngineAdapter
       await handler(req, res);
     });
   }
-
-  public listen(port: number, callback?: () => void): void {
-    this.app.listen(port, () => {
-      if (callback) {
-        callback();
-      }
-    });
-  }
-
   public options(
     path: string,
     handler: (req: Request, res: Response) => Promise<void>,
@@ -88,3 +79,5 @@ export class ExpressEngineAdapter
     });
   }
 }
+
+export type ExpressHttpContext = HttpContext<Request, Response>;

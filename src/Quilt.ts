@@ -40,7 +40,6 @@ export interface ServerEngineAdapter<RequestType, ResponseType> {
     path: string,
     handler: (req: RequestType, res: ResponseType) => Promise<void>,
   ): void;
-  listen(port: number, callback?: () => void): void;
 }
 
 export type HttpContext<RequestType, ResponseType> = {
@@ -122,10 +121,6 @@ export class Quilt<RequestType = any, ResponseType = any> {
     this.adapter.head(path, async (req, res) => {
       await this.handleRequest({ req, res }, handler);
     });
-  }
-
-  public listen(port: number, callback?: () => void): void {
-    this.adapter.listen(port, callback);
   }
 
   public setErrorHandler(

@@ -1,16 +1,19 @@
-import type { Request, Response } from 'express';
 import express from 'express';
 
-import { Quilt } from '../src/Quilt.js';
-import { ExpressEngineAdapter } from '../src/adapters/ExpressEngineAdapter.js';
-import { createHandler } from '../src/Handler.js';
+import type { Request, Response } from 'express';
+
+import {
+  ExpressEngineAdapter,
+  type ExpressHttpContext,
+} from '../src/adapters/ExpressEngineAdapter.js';
+import { Quilt, createHandler } from '../src/index.js';
 
 const app = express();
 
 const quilt = new Quilt(new ExpressEngineAdapter({ app }));
 
 const expressHandler = createHandler({
-  execute: async (ctx: { req: Request; res: Response }) => {
+  execute: async (ctx: ExpressHttpContext) => {
     const reqOk: Request = ctx.req;
     const resOk: Response = ctx.res;
     void reqOk;
@@ -26,4 +29,3 @@ const expressHandler = createHandler({
 });
 
 quilt.get('/type-test-express', expressHandler);
-

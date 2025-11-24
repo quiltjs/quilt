@@ -1,7 +1,11 @@
 /**
  * Represents the outputs of dependencies as a record with keys.
  */
-export type HandlerOutputs<D extends Record<string, Handler<any, any, any>>> = {
+export type HandlerOutputs<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  D extends Record<string, Handler<any, any, any>>,
+> = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [K in keyof D]: D[K] extends Handler<infer O, any, any> ? O : never;
 };
 
@@ -14,6 +18,7 @@ export type HandlerOutputs<D extends Record<string, Handler<any, any, any>>> = {
 export type Handler<
   O,
   Ctx,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/ban-types
   D extends Record<string, Handler<any, Ctx, any>> = {},
 > = {
   /**
@@ -31,14 +36,8 @@ export type Handler<
    *
    * @param ctx  - The execution context (e.g. `{ req, res }`).
    * @param deps - The outputs from dependencies.
-   * @param next - An async function to continue execution, optionally
-   *               accepting a value to cache as this handler's output.
    */
-  execute: (
-    ctx: Ctx,
-    deps: HandlerOutputs<D>,
-    next: (value?: O) => Promise<O>,
-  ) => Promise<O> | O;
+  execute: (ctx: Ctx, deps: HandlerOutputs<D>) => Promise<O> | O;
 };
 
 /**
@@ -48,8 +47,11 @@ export type Handler<
  * and "terminal" handlers at the edge of the system.
  */
 export function createHandler<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   O = any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   Ctx = any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/ban-types
   D extends Record<string, Handler<any, Ctx, any>> = {},
 >({
   id,
@@ -57,11 +59,7 @@ export function createHandler<
   dependencies,
 }: {
   id?: string;
-  execute: (
-    ctx: Ctx,
-    deps: HandlerOutputs<D>,
-    next: (value?: O) => Promise<O>,
-  ) => Promise<O> | O;
+  execute: (ctx: Ctx, deps: HandlerOutputs<D>) => Promise<O> | O;
   dependencies?: D;
 }): Handler<O, Ctx, D> {
   return {

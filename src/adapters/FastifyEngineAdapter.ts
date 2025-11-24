@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { ServerEngineAdapter } from '../Quilt.js';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import type { HttpContext, ServerEngineAdapter } from '../Quilt.js';
 
 /**
  * Adapter that implements the ServerEngine interface using Fastify.
@@ -76,14 +76,6 @@ export class FastifyEngineAdapter
       await handler(request, reply);
     });
   }
-
-  public listen(port: number, callback?: () => void): void {
-    this.fastify.listen({ port }, (err, address) => {
-      if (err) {
-        throw err;
-      }
-      console.log(`Server listening at ${address}`);
-      if (callback) callback();
-    });
-  }
 }
+
+export type FastifyHttpContext = HttpContext<FastifyRequest, FastifyReply>;

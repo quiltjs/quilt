@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import http, { type IncomingMessage, type ServerResponse } from 'node:http';
-import { type HTTPMethod, type ServerEngineAdapter } from '../Quilt.js';
+import type { HTTPMethod, HttpContext, ServerEngineAdapter } from '../Quilt.js';
 
-type NodeHttpRequest = IncomingMessage & {
+export type NodeHttpRequest = IncomingMessage & {
   params: Record<string, string | undefined>;
   query: Record<string, string | undefined>;
   body: unknown;
@@ -223,3 +223,5 @@ export class NodeHttpEngineAdapter
     });
   }
 }
+
+export type NodeHttpContext = HttpContext<NodeHttpRequest, ServerResponse>;
