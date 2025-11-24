@@ -371,6 +371,64 @@ See `examples/node-http-starter` for a complete runnable Node HTTP starter.
 
 ---
 
+### Node HTTP metadata escape hatch
+
+For most application data, Quilt encourages you to use handlers and their
+dependencies (`deps`) rather than mutating the request object. However,
+some cross-cutting concerns (logging, tracing, correlation IDs) are easier
+to handle via per-request metadata.
+
+The Node HTTP adapter exposes an optional `locals` bag on `NodeHttpRequest`:
+
+```ts
+export type NodeHttpRequest = IncomingMessage & {
+  params: Record<string, string | undefined>;
+  query: Record<string, string | undefined>;
+  body: unknown;
+  locals?: Record<string, unknown>;
+};
+```
+
+You can treat this as an **escape hatch** for infrastructure metadata:
+
+```ts
+const requestIdHandler = createNodeHttpRouteHandler({
+  execute: async ({ req }) => {
+    const requestId = crypto.randomUUID();
+    req.locals ??= {};
+    req.locals.requestId = requestId;
+    return { requestId };
+  },
+});
+
+const routeHandler = createNodeHttpRouteHandler({
+  dependencies: { requestId: requestIdHandler },
+  execute: async ({ req, res }, deps) => {
+    console.log('handling', deps.requestId);
+    // ...
+  },
+});
+
+quilt.get('/api/with-request-id', routeHandler);
+```
+
+In the error handler you can read the same metadata via `req.locals`:
+
+```ts
+quilt.setErrorHandler((error, { req, res }) => {
+  const requestId = req.locals?.requestId;
+  console.error('error for request', requestId, error);
+  // map error to HTTP response ...
+});
+```
+
+We recommend using `locals` only for infrastructure concerns (logging,
+tracing, correlation IDs). Business data should continue to flow through
+handlers and their `deps` so that dependencies remain explicit and
+type-safe.
+
+---
+
 ## Examples
 
 Clone this repo and explore:

@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.3
+
+- Added an optional `locals` bag to `NodeHttpRequest` as an escape hatch for per-request infrastructure metadata (for example, logging/tracing request IDs), and documented its intended usage in the README.
+- Kept application data flow centered on handlers and their dependencies; `locals` is recommended only for cross-cutting concerns.
+
 ## 0.2.2
 
 - Added `createNodeHttpRouteHandler` helper for Node HTTP to make it easier to define handlers with typed `params`, `query`, and `body` while remaining compatible with `Quilt`’s routing API.

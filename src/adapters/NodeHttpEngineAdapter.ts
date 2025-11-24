@@ -11,6 +11,15 @@ export type NodeHttpRequest = IncomingMessage & {
   params: Record<string, string | undefined>;
   query: Record<string, string | undefined>;
   body: unknown;
+  /**
+   * Optional per-request metadata bag.
+   *
+   * This is an escape hatch intended for infrastructure concerns like
+   * logging and tracing (for example, attaching a requestId). Business
+   * data should generally flow through handlers and their dependencies
+   * instead of being stored here.
+   */
+  locals?: Record<string, unknown>;
 };
 
 type NodeHttpRouteHandler = (
