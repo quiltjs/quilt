@@ -230,7 +230,7 @@ pnpm add @quiltjs/quilt express
 Fastify/Express are peer dependencies because Quilt can be used with other HTTP engines via custom
 adapters. They are marked as optional peers so you only need to install the stack you actually use:
 
-- Using **Express** only: install `express@^4.18.2`.
+- Using **Express** only: install `express@^4.18.2` or `express@^5.0.0` and ensure your `@types/express` major version matches your Express major version.
 - Using **Fastify** only: install `fastify@^4.25.2` (and `@fastify/multipart` if you need multipart).
 - Using a **custom adapter**: you do not need Express or Fastify at all.
 

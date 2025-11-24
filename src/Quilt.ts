@@ -65,63 +65,105 @@ export class Quilt<RequestType = any, ResponseType = any> {
     this.adapter = adapter;
   }
 
-  public get(
+  public get<
+    O,
+    D extends Record<
+      string,
+      Handler<any, HttpContext<RequestType, ResponseType>, any>
+    >,
+  >(
     path: string,
-    handler: Handler<any, HttpContext<RequestType, ResponseType>>,
+    handler: Handler<O, HttpContext<RequestType, ResponseType>, D>,
   ): void {
     this.adapter.get(path, async (req, res) => {
       await this.handleRequest({ req, res }, handler);
     });
   }
 
-  public post(
+  public post<
+    O,
+    D extends Record<
+      string,
+      Handler<any, HttpContext<RequestType, ResponseType>, any>
+    >,
+  >(
     path: string,
-    handler: Handler<any, HttpContext<RequestType, ResponseType>>,
+    handler: Handler<O, HttpContext<RequestType, ResponseType>, D>,
   ): void {
     this.adapter.post(path, async (req, res) => {
       await this.handleRequest({ req, res }, handler);
     });
   }
 
-  public put(
+  public put<
+    O,
+    D extends Record<
+      string,
+      Handler<any, HttpContext<RequestType, ResponseType>, any>
+    >,
+  >(
     path: string,
-    handler: Handler<any, HttpContext<RequestType, ResponseType>>,
+    handler: Handler<O, HttpContext<RequestType, ResponseType>, D>,
   ): void {
     this.adapter.put(path, async (req, res) => {
       await this.handleRequest({ req, res }, handler);
     });
   }
 
-  public patch(
+  public patch<
+    O,
+    D extends Record<
+      string,
+      Handler<any, HttpContext<RequestType, ResponseType>, any>
+    >,
+  >(
     path: string,
-    handler: Handler<any, HttpContext<RequestType, ResponseType>>,
+    handler: Handler<O, HttpContext<RequestType, ResponseType>, D>,
   ): void {
     this.adapter.patch(path, async (req, res) => {
       await this.handleRequest({ req, res }, handler);
     });
   }
 
-  public delete(
+  public delete<
+    O,
+    D extends Record<
+      string,
+      Handler<any, HttpContext<RequestType, ResponseType>, any>
+    >,
+  >(
     path: string,
-    handler: Handler<any, HttpContext<RequestType, ResponseType>>,
+    handler: Handler<O, HttpContext<RequestType, ResponseType>, D>,
   ): void {
     this.adapter.delete(path, async (req, res) => {
       await this.handleRequest({ req, res }, handler);
     });
   }
 
-  public options(
+  public options<
+    O,
+    D extends Record<
+      string,
+      Handler<any, HttpContext<RequestType, ResponseType>, any>
+    >,
+  >(
     path: string,
-    handler: Handler<any, HttpContext<RequestType, ResponseType>>,
+    handler: Handler<O, HttpContext<RequestType, ResponseType>, D>,
   ): void {
     this.adapter.options(path, async (req, res) => {
       await this.handleRequest({ req, res }, handler);
     });
   }
 
-  public head(
+  public head<
+    O,
+    D extends Record<
+      string,
+      Handler<any, HttpContext<RequestType, ResponseType>, any>
+    >,
+  >(
     path: string,
-    handler: Handler<any, HttpContext<RequestType, ResponseType>>,
+    handler: Handler<O, HttpContext<RequestType, ResponseType>, D>,
   ): void {
     this.adapter.head(path, async (req, res) => {
       await this.handleRequest({ req, res }, handler);
@@ -138,9 +180,15 @@ export class Quilt<RequestType = any, ResponseType = any> {
     this.hooks = hooks;
   }
 
-  private async handleRequest(
+  private async handleRequest<
+    O,
+    D extends Record<
+      string,
+      Handler<any, HttpContext<RequestType, ResponseType>, any>
+    >,
+  >(
     ctx: HttpContext<RequestType, ResponseType>,
-    handler: Handler<any, HttpContext<RequestType, ResponseType>, any>,
+    handler: Handler<O, HttpContext<RequestType, ResponseType>, D>,
   ): Promise<void> {
     if (!this.errorHandler) {
       await executeHandler(handler, ctx, this.hooks);
