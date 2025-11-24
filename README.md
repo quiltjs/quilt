@@ -244,6 +244,11 @@ const profileHandler = createHandler({
     };
   },
 });
+
+// Execute the graph over any context object you choose
+await executeHandler(profileHandler, {
+  headers: incomingHeaders,
+});
 ```
 
 Handlers form a directed acyclic graph. Quilt:
@@ -327,7 +332,7 @@ the underlying framework response object to generate an appropriate HTTP respons
 
 ---
 
-## Custom adapters 🔌
+## Custom adapters
 
 Fastify and Express support are provided out of the box via `FastifyEngineAdapter` and
 `ExpressEngineAdapter`, but you can integrate Quilt with any HTTP server by implementing
@@ -335,7 +340,7 @@ Fastify and Express support are provided out of the box via `FastifyEngineAdapte
 
 ---
 
-## TypeScript configuration 🛠️
+## TypeScript configuration
 
 Quilt is authored in TypeScript and ships declarations. A typical consumer `tsconfig.json` should
 work fine as long as:
