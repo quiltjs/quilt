@@ -1,20 +1,38 @@
-# @quiltjs/quilt
+# @quiltjs/quilt ✨
 
-Lightweight, type-safe request handling and routing for Node HTTP servers, with first-class Fastify and Express support.
+<p align="center">
+  <img src="assets/quilt.svg" alt="Quilt logo" width="160" />
+</p>
+
+Lightweight, type-safe request handling and routing for Node HTTP servers, with first-class Fastify and Express support. 🧵
 
 `@quiltjs/quilt` lets you build HTTP APIs from small, composable, strongly-typed “handlers”
 instead of ad-hoc middleware that mutates `req`/`res`. It is designed to be framework-agnostic and
 to sit cleanly on top of your HTTP server of choice.
 
-- Strong TypeScript types for handlers and their dependencies
-- Explicit dependency graph instead of “magic” middleware ordering
-- Framework abstraction via `ServerEngineAdapter` (Fastify and Express adapters included)
-- Simple routing via `Quilt` and `QuiltRouter`
-- JSON and multipart/form-data support
+- 🧠 Strong TypeScript types for handlers and their dependencies
+- 🧩 Explicit dependency graph instead of “magic” middleware ordering
+- 🔌 Framework abstraction via `ServerEngineAdapter` (Fastify and Express adapters included)
+- 🧭 Simple routing via `Quilt` and `QuiltRouter`
+- 📦 JSON and multipart/form-data support
 
 ---
 
-## Installation
+## Why Quilt? 🤔
+
+Quilt gives you a clearer alternative to traditional middleware. Instead of relying on ordering and mutation, you build request logic from small, typed handlers with explicit dependencies. No decorators, no global DI, no FP overhead — just predictable composition.
+
+- Explicit dependencies — handlers declare what they need; Quilt runs them once per request and injects the results.
+- Plain async functions — no decorators, classes, or schema systems required.
+- Framework-agnostic — works with Fastify, Express, or any HTTP server via a tiny adapter.
+- Consistent request/response model — JSON, URL-encoded, and multipart handled the same way.
+- Composable by design — auth, loading, validation, and business logic stay small and reusable.
+
+If you want strong types and predictable composition without adopting a whole new framework, Quilt is designed for exactly that. 💪
+
+---
+
+## Installation 📦
 
 Fastify:
 
@@ -37,7 +55,7 @@ adapters.
 
 ---
 
-## Quick start (Fastify)
+## Quick start (Fastify) ⚡
 
 ```ts
 import fastify from 'fastify';
@@ -89,7 +107,7 @@ Now `GET /api/hello?name=Quilt` returns:
 
 ---
 
-## Quick start (Express)
+## Quick start (Express) 🚂
 
 ```ts
 import express from 'express';
@@ -135,7 +153,7 @@ quilt.listen(3000, () => {
 
 ---
 
-## Quick start (Node http)
+## Quick start (Node http) 🧱
 
 ```ts
 import http from 'node:http';
@@ -179,9 +197,9 @@ adapter.listen(3000, () => {
 
 ---
 
-## Core concepts
+## Core concepts 🧠
 
-### Handlers
+### Handlers 🧱
 
 A **handler** is a small unit of work that:
 
@@ -228,7 +246,7 @@ Handlers form a directed acyclic graph. Quilt:
 - Ensures each handler runs at most once per request
 - Caches outputs and injects them into downstream handlers as `deps`
 
-### Requests and responses
+### Requests and responses 📥📤
 
 Quilt introduces a small set of request/response types:
 
@@ -245,7 +263,7 @@ The Fastify adapter converts:
 `createHandler` automatically wraps your return value in a `QuiltResponse` with status `200`. If you
 need full control, you can construct and return a `QuiltResponse` yourself inside the handler chain.
 
-### Routing
+### Routing 🗺️
 
 Routing is done via `Quilt` and `QuiltRouter`:
 
@@ -285,7 +303,7 @@ registerRouters(quilt, new HealthRouter());
 
 ---
 
-## Error handling
+## Error handling 🚨
 
 You can centralize error handling with `Quilt#setErrorHandler`.
 
@@ -313,7 +331,7 @@ into a `QuiltResponse`.
 
 ---
 
-## Multipart example
+## Multipart example 📎
 
 When `@fastify/multipart` is installed and registered, file uploads are exposed via
 `MultiPartQuiltRequest`:
@@ -344,7 +362,7 @@ const uploadHandler = createHandler({
 
 ---
 
-## Custom adapters
+## Custom adapters 🔌
 
 Fastify and Express support are provided out of the box via `FastifyEngineAdapter` and
 `ExpressEngineAdapter`, but you can integrate Quilt with any HTTP server by implementing
@@ -352,7 +370,7 @@ Fastify and Express support are provided out of the box via `FastifyEngineAdapte
 
 ---
 
-## TypeScript configuration
+## TypeScript configuration 🛠️
 
 Quilt is authored in TypeScript and ships declarations. A typical consumer `tsconfig.json` should
 work fine as long as:
