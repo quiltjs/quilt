@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## 0.2.0
+
+- Simplified handler API by removing the optional `id` field from `Handler` and `createHandler` options; handler identity for execution and caching is now based solely on handler object identity.
+- Clarified and aligned README and examples with the streamlined API (no `id` usage in core examples, smaller surface area).
+- Added tests for `executeHandler` hooks (start/success/error) and `Quilt.setHooks` to verify observability behavior.
+- Extended `NodeHttpEngineAdapter` tests to cover invalid JSON request bodies and ensure the raw body is exposed when parsing fails.
+
 ## 0.1.1
 
 - Typed HTTP context exports for adapters (`FastifyHttpContext`, `ExpressHttpContext`, `NodeHttpContext`, `NodeHttpRequest`).
