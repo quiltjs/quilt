@@ -1,13 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/// <reference types="node" />
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { File } from 'node:buffer';
-import {
-  MultiPartQuiltRequest,
-  QuiltResponse,
-  ServerEngineAdapter,
-  SinglePartQuiltRequest,
-} from '../Quilt.js';
+import { ServerEngineAdapter } from '../Quilt.js';
 
 /**
  * Adapter that implements the ServerEngine interface using Fastify.
@@ -19,57 +12,6 @@ export class FastifyEngineAdapter
 
   constructor({ fastify }: { fastify: FastifyInstance }) {
     this.fastify = fastify;
-  }
-
-  public async toQuiltRequest(
-    req: FastifyRequest,
-    res: FastifyReply,
-  ): Promise<SinglePartQuiltRequest | MultiPartQuiltRequest> {
-    const anyReq = req as any;
-    if (typeof anyReq.isMultipart === 'function' && anyReq.isMultipart()) {
-      const fields: Record<string, string | File> = {};
-
-      const parts = anyReq.parts();
-      for await (const part of parts) {
-        if (part.type === 'file') {
-          const fileBuffer = await part.toBuffer();
-          const mockFile = new File([fileBuffer], part.filename || 'unnamed', {
-            type: part.mimetype,
-          });
-          fields[part.fieldname] = mockFile;
-        } else {
-          if (typeof part.value !== 'string') {
-            throw new Error('Expected string value for non-file part');
-          }
-          fields[part.fieldname] = part.value;
-        }
-      }
-
-      return new MultiPartQuiltRequest({
-        headers: req.headers,
-        params: req.params as Record<string, string | undefined>,
-        query: req.query as Record<string, string | undefined>,
-        fields,
-        raw: {
-          framework: 'fastify',
-          request: req,
-          response: res,
-        },
-      });
-    }
-
-    // If not multipart, assume it's a general data request
-    return new SinglePartQuiltRequest({
-      headers: req.headers,
-      params: req.params as Record<string, string | undefined>,
-      query: req.query as Record<string, string | undefined>,
-      body: req.body,
-      raw: {
-        framework: 'fastify',
-        request: req,
-        response: res,
-      },
-    });
   }
 
   public post(
@@ -143,19 +85,5 @@ export class FastifyEngineAdapter
       console.log(`Server listening at ${address}`);
       if (callback) callback();
     });
-  }
-
-  handleQuiltResponse(response: QuiltResponse, res: FastifyReply): any {
-    let reply = res.code(response.status);
-
-    for (const [key, value] of Object.entries(response.headers)) {
-      reply = reply.header(key, value);
-    }
-
-    if (response.contentType) {
-      reply = reply.type(response.contentType);
-    }
-
-    return reply.send(response.body);
   }
 }

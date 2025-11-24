@@ -1,36 +1,41 @@
-import { QuiltRequest, QuiltResponse } from './Quilt.js';
-
 /**
  * Represents the outputs of dependencies as a record with keys.
  */
-export type HandlerOutputs<D extends Record<string, Handler<any, any>>> = {
-  [K in keyof D]: D[K] extends Handler<infer O, any> ? O : never;
+export type HandlerOutputs<D extends Record<string, Handler<any, any, any>>> = {
+  [K in keyof D]: D[K] extends Handler<infer O, any, any> ? O : never;
 };
 
 /**
  * Represents a handler with its named dependencies and handler function.
+ *
+ * `Ctx` is an arbitrary context type (for example `{ req, res }` in HTTP
+ * adapters). Quilt itself does not assume anything about this shape.
  */
 export type Handler<
   O,
-  T extends QuiltRequest,
-  D extends Record<string, Handler<any, any>> = {},
+  Ctx,
+  D extends Record<string, Handler<any, Ctx, any>> = {},
 > = {
   /**
-   * Optional id for caching, two handlers with the same id will be considered the same handler
-   * within a single execution context.
+   * Optional id for caching; two handlers with the same id will be treated
+   * as the same handler within a single execution context.
    */
   id?: string;
+  /**
+   * Named dependency handlers. Their outputs are made available to this
+   * handler as the `deps` parameter.
+   */
   dependencies: D;
   /**
    * Executes the handler.
    *
-   * @param req - The QuiltRequest object.
+   * @param ctx  - The execution context (e.g. `{ req, res }`).
    * @param deps - The outputs from dependencies.
-   * @param next - An asynchronous function to continue execution, optionally accepting a value to terminate early.
-   * @returns The handler's output.
+   * @param next - An async function to continue execution, optionally
+   *               accepting a value to cache as this handler's output.
    */
   execute: (
-    req: T,
+    ctx: Ctx,
     deps: HandlerOutputs<D>,
     next: (value?: O) => Promise<O>,
   ) => Promise<O> | O;
@@ -39,31 +44,13 @@ export type Handler<
 /**
  * Creates a handler that depends on other handlers.
  *
- * @param params - An object containing the handler's properties.
- * @returns A handler that can be used in a handler pipeline.
- *
- * @example
- *
- * ```typescript
- * const handlerA = createHandler<string>({ execute: async () => 'Hello' });
- * const handlerB = createHandler<number>({ execute: async () => 42 });
- *
- * const combinedHandler = createHandler<
- *   { message: string; number: number },
- *   { a: typeof handlerA; b: typeof handlerB }
- * >({
- *   execute: async (req, deps, next) => ({
- *     message: deps.a,
- *     number: deps.b,
- *   }),
- *   dependencies: { a: handlerA, b: handlerB },
- * });
- * ```
+ * This is typically used for "middleware-like" handlers that produce
+ * values used by other handlers.
  */
 export function createMiddlewareHandler<
-  O,
-  T extends QuiltRequest,
-  D extends Record<string, Handler<any, any, any>>,
+  O = any,
+  Ctx = any,
+  D extends Record<string, Handler<any, Ctx, any>> = {},
 >({
   id,
   execute,
@@ -71,22 +58,29 @@ export function createMiddlewareHandler<
 }: {
   id?: string;
   execute: (
-    req: T,
+    ctx: Ctx,
     deps: HandlerOutputs<D>,
     next: (value?: O) => Promise<O>,
   ) => Promise<O> | O;
   dependencies?: D;
-}): Handler<O, T, D> {
+}): Handler<O, Ctx, D> {
   return {
     id,
-    dependencies: dependencies || ({} as D),
+    dependencies: (dependencies || {}) as D,
     execute,
   };
 }
 
-// End handlers must resolve to a QuiltResponse
+/**
+ * Creates a "terminal" handler in a dependency graph.
+ *
+ * This behaves the same as `createMiddlewareHandler` but is intended for
+ * route or use-case handlers at the edge of the system.
+ */
 export function createHandler<
-  D extends Record<string, Handler<any, any, any>>,
+  O = any,
+  Ctx = any,
+  D extends Record<string, Handler<any, Ctx, any>> = {},
 >({
   id,
   execute,
@@ -94,25 +88,15 @@ export function createHandler<
 }: {
   id?: string;
   execute: (
-    req: QuiltRequest,
+    ctx: Ctx,
     deps: HandlerOutputs<D>,
-    next: (value?: any) => Promise<any>,
-  ) => Promise<any> | any;
+    next: (value?: O) => Promise<O>,
+  ) => Promise<O> | O;
   dependencies?: D;
-}): Handler<any, QuiltRequest, D> {
+}): Handler<O, Ctx, D> {
   return {
     id,
-    dependencies: dependencies || ({} as D),
-    // Wrap with QuiltResponse
-    execute: async (req, deps, next) => {
-      const result = await execute(req, deps, next);
-      if (result instanceof QuiltResponse) {
-        return result;
-      }
-      return new QuiltResponse({
-        status: 200,
-        body: result,
-      });
-    },
+    dependencies: (dependencies || {}) as D,
+    execute,
   };
 }

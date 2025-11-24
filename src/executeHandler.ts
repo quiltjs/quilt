@@ -1,22 +1,28 @@
 import { Handler, HandlerOutputs } from './Handler.js';
-import { QuiltRequest, QuiltResponse } from './Quilt.js';
 
+/**
+ * Executes a handler graph for a given context.
+ *
+ * Each handler runs at most once per execution, and its output is cached
+ * and provided to dependants via the `deps` parameter. The final return
+ * value is ignored; callers should rely on handler side-effects (for
+ * example, writing to an HTTP response) or on dependency outputs.
+ */
 export async function executeHandler<
-  O,
-  T extends QuiltRequest,
-  D extends Record<string, Handler<any, T, any>>,
->(handler: Handler<O, T, D>, req: T): Promise<QuiltResponse> {
+  Ctx,
+  D extends Record<string, Handler<any, Ctx, any>>,
+>(handler: Handler<any, Ctx, D>, ctx: Ctx): Promise<void> {
   // Cache to store handler outputs
-  const cache = new Map<string | Handler<any, any>, any>();
+  const cache = new Map<string | Handler<any, Ctx, any>, any>();
 
   /**
    * Determines the cache key for a given handler.
    * Uses handler.id if available; otherwise, uses the handler object itself.
    */
   function getHandlerKey(
-    handler: Handler<any, T, any>,
-  ): string | Handler<any, T, any> {
-    return handler.id ?? handler;
+    h: Handler<any, Ctx, any>,
+  ): string | Handler<any, Ctx, any> {
+    return h.id ?? h;
   }
 
   /**
@@ -25,18 +31,18 @@ export async function executeHandler<
    * Also checks for cyclic dependencies.
    */
   function flattenDependencies(
-    currentHandler: Handler<any, T, any>,
-  ): Handler<any, T, any>[] {
-    const flatOrder: Handler<any, T, any>[] = [];
-    const visited = new Set<string | Handler<any, any>>();
-    const visiting = new Set<string | Handler<any, any>>();
+    currentHandler: Handler<any, Ctx, any>,
+  ): Handler<any, Ctx, any>[] {
+    const flatOrder: Handler<any, Ctx, any>[] = [];
+    const visited = new Set<string | Handler<any, any, any>>();
+    const visiting = new Set<string | Handler<any, any, any>>();
 
-    function visit(handler: Handler<any, any>) {
-      const key = getHandlerKey(handler);
+    function visit(h: Handler<any, any, any>): void {
+      const key = h.id ?? h;
 
       if (visiting.has(key)) {
         throw new Error(
-          `Cyclic dependency detected for handler ${handler.id ?? 'without id'}`,
+          `Cyclic dependency detected for handler ${h.id ?? 'without id'}`,
         );
       }
 
@@ -44,13 +50,13 @@ export async function executeHandler<
 
       visiting.add(key);
 
-      for (const dep of Object.values(handler.dependencies)) {
-        visit(dep as Handler<any, any>);
+      for (const dep of Object.values(h.dependencies)) {
+        visit(dep as Handler<any, any, any>);
       }
 
       visiting.delete(key);
       visited.add(key);
-      flatOrder.push(handler);
+      flatOrder.push(h as Handler<any, Ctx, any>);
     }
 
     visit(currentHandler);
@@ -63,12 +69,13 @@ export async function executeHandler<
   async function next(currentHandlerIndex: number): Promise<any> {
     const currentHandler = flatOrder[currentHandlerIndex];
     if (!currentHandler) return;
+
     const depsOutputs = {} as HandlerOutputs<any>;
     for (const [depKey, depHandler] of Object.entries(
       currentHandler.dependencies,
     )) {
       depsOutputs[depKey] = cache.get(
-        getHandlerKey(depHandler as Handler<any, any>),
+        getHandlerKey(depHandler as Handler<any, Ctx, any>),
       );
     }
 
@@ -80,7 +87,7 @@ export async function executeHandler<
     }
 
     const outputs = await currentHandler.execute(
-      req,
+      ctx,
       depsOutputs,
       async (value?: any) => {
         // If next() is called with a value, cache it and continue execution
@@ -89,18 +96,9 @@ export async function executeHandler<
           cache.set(getHandlerKey(currentHandler), value);
         }
 
-        // If value is a QuiltResponse, return it immediately
-        if (value instanceof QuiltResponse) {
-          return value;
-        }
-
         return await next(currentHandlerIndex + 1);
       },
     );
-
-    if (outputs instanceof QuiltResponse) {
-      return outputs; // Return QuiltResponse immediately
-    }
 
     if (!calledNext) {
       cache.set(getHandlerKey(currentHandler), outputs);
@@ -110,14 +108,5 @@ export async function executeHandler<
 
   // Flatten the dependency tree (with cycle detection) and execute handlers in order
   const flatOrder = flattenDependencies(handler);
-  const finalOutput = await next(0);
-
-  // Ensure the final output is a QuiltResponse
-  if (!(finalOutput instanceof QuiltResponse)) {
-    throw new Error(
-      `The handler chain must return a QuiltResponse, but received ${finalOutput}`,
-    );
-  }
-
-  return finalOutput;
+  await next(0);
 }

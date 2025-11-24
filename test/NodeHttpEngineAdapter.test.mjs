@@ -4,7 +4,6 @@ import assert from 'node:assert/strict';
 import {
   Quilt,
   NodeHttpEngineAdapter,
-  QuiltResponse,
   createHandler,
   registerRouters,
 } from '../dist/index.js';
@@ -14,8 +13,10 @@ test('NodeHttpEngineAdapter handles GET + query', async () => {
   const quilt = new Quilt(adapter);
 
   const helloHandler = createHandler({
-    execute: async (req) => {
-      return { message: `hi ${req.query.name ?? 'world'}` };
+    execute: async ({ req, res }) => {
+      res.statusCode = 200;
+      res.setHeader('content-type', 'application/json; charset=utf-8');
+      res.end(JSON.stringify({ message: `hi ${req.query.name ?? 'world'}` }));
     },
   });
 
@@ -28,12 +29,14 @@ test('NodeHttpEngineAdapter handles GET + query', async () => {
   const port = adapter.getPort();
   assert.ok(typeof port === 'number');
 
-  const res = await fetch(`http://localhost:${port}/hello?name=Quilt`);
-  assert.equal(res.status, 200);
-  const json = await res.json();
-  assert.deepEqual(json, { message: 'hi Quilt' });
-
-  await adapter.close();
+  try {
+    const res = await fetch(`http://localhost:${port}/hello?name=Quilt`);
+    assert.equal(res.status, 200);
+    const json = await res.json();
+    assert.deepEqual(json, { message: 'hi Quilt' });
+  } finally {
+    await adapter.close();
+  }
 });
 
 test('NodeHttpEngineAdapter maps params and body for POST', async () => {
@@ -41,11 +44,15 @@ test('NodeHttpEngineAdapter maps params and body for POST', async () => {
   const quilt = new Quilt(adapter);
 
   const echoHandler = createHandler({
-    execute: async (req) => {
-      return {
-        id: req.params.id,
-        body: req.body,
-      };
+    execute: async ({ req, res }) => {
+      res.statusCode = 200;
+      res.setHeader('content-type', 'application/json; charset=utf-8');
+      res.end(
+        JSON.stringify({
+          id: req.params.id,
+          body: req.body,
+        }),
+      );
     },
   });
 
@@ -58,17 +65,19 @@ test('NodeHttpEngineAdapter maps params and body for POST', async () => {
   const port = adapter.getPort();
   assert.ok(typeof port === 'number');
 
-  const res = await fetch(`http://localhost:${port}/users/123`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ name: 'Quilt' }),
-  });
+  try {
+    const res = await fetch(`http://localhost:${port}/users/123`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ name: 'Quilt' }),
+    });
 
-  assert.equal(res.status, 200);
-  const json = await res.json();
-  assert.deepEqual(json, { id: '123', body: { name: 'Quilt' } });
-
-  await adapter.close();
+    assert.equal(res.status, 200);
+    const json = await res.json();
+    assert.deepEqual(json, { id: '123', body: { name: 'Quilt' } });
+  } finally {
+    await adapter.close();
+  }
 });
 
 test('NodeHttpEngineAdapter respects Quilt error handler', async () => {
@@ -81,11 +90,10 @@ test('NodeHttpEngineAdapter respects Quilt error handler', async () => {
     },
   });
 
-  quilt.setErrorHandler((error) => {
-    return new QuiltResponse({
-      status: 500,
-      body: { error: error.message },
-    });
+  quilt.setErrorHandler((error, { res }) => {
+    res.statusCode = 500;
+    res.setHeader('content-type', 'application/json; charset=utf-8');
+    res.end(JSON.stringify({ error: error.message }));
   });
 
   quilt.get('/fail', failingHandler);
@@ -97,12 +105,14 @@ test('NodeHttpEngineAdapter respects Quilt error handler', async () => {
   const port = adapter.getPort();
   assert.ok(typeof port === 'number');
 
-  const res = await fetch(`http://localhost:${port}/fail`);
-  assert.equal(res.status, 500);
-  const json = await res.json();
-  assert.deepEqual(json, { error: 'boom' });
-
-  await adapter.close();
+  try {
+    const res = await fetch(`http://localhost:${port}/fail`);
+    assert.equal(res.status, 500);
+    const json = await res.json();
+    assert.deepEqual(json, { error: 'boom' });
+  } finally {
+    await adapter.close();
+  }
 });
 
 test('NodeHttpEngineAdapter works with registerRouters', async () => {
@@ -110,8 +120,10 @@ test('NodeHttpEngineAdapter works with registerRouters', async () => {
   const quilt = new Quilt(adapter);
 
   const statusHandler = createHandler({
-    execute: async () => {
-      return { ok: true };
+    execute: async ({ res }) => {
+      res.statusCode = 200;
+      res.setHeader('content-type', 'application/json; charset=utf-8');
+      res.end(JSON.stringify({ ok: true }));
     },
   });
 
@@ -137,12 +149,14 @@ test('NodeHttpEngineAdapter works with registerRouters', async () => {
   const port = adapter.getPort();
   assert.ok(typeof port === 'number');
 
-  const res = await fetch(`http://localhost:${port}/status`);
-  assert.equal(res.status, 200);
-  const json = await res.json();
-  assert.deepEqual(json, { ok: true });
-
-  await adapter.close();
+  try {
+    const res = await fetch(`http://localhost:${port}/status`);
+    assert.equal(res.status, 200);
+    const json = await res.json();
+    assert.deepEqual(json, { ok: true });
+  } finally {
+    await adapter.close();
+  }
 });
 
 test('NodeHttpEngineAdapter supports OPTIONS and HEAD', async () => {
@@ -150,14 +164,17 @@ test('NodeHttpEngineAdapter supports OPTIONS and HEAD', async () => {
   const quilt = new Quilt(adapter);
 
   const optionsHandler = createHandler({
-    execute: async () => {
-      return { allow: 'GET,OPTIONS,HEAD' };
+    execute: async ({ res }) => {
+      res.statusCode = 200;
+      res.setHeader('content-type', 'application/json; charset=utf-8');
+      res.end(JSON.stringify({ allow: 'GET,OPTIONS,HEAD' }));
     },
   });
 
   const headHandler = createHandler({
-    execute: async () => {
-      return { ok: true };
+    execute: async ({ res }) => {
+      res.statusCode = 200;
+      res.end();
     },
   });
 
@@ -171,19 +188,21 @@ test('NodeHttpEngineAdapter supports OPTIONS and HEAD', async () => {
   const port = adapter.getPort();
   assert.ok(typeof port === 'number');
 
-  const resOptions = await fetch(`http://localhost:${port}/resource`, {
-    method: 'OPTIONS',
-  });
-  const jsonOptions = await resOptions.json();
-  assert.equal(resOptions.status, 200);
-  assert.deepEqual(jsonOptions, { allow: 'GET,OPTIONS,HEAD' });
+  try {
+    const resOptions = await fetch(`http://localhost:${port}/resource`, {
+      method: 'OPTIONS',
+    });
+    const jsonOptions = await resOptions.json();
+    assert.equal(resOptions.status, 200);
+    assert.deepEqual(jsonOptions, { allow: 'GET,OPTIONS,HEAD' });
 
-  const resHead = await fetch(`http://localhost:${port}/resource`, {
-    method: 'HEAD',
-  });
-  assert.equal(resHead.status, 200);
-
-  await adapter.close();
+    const resHead = await fetch(`http://localhost:${port}/resource`, {
+      method: 'HEAD',
+    });
+    assert.equal(resHead.status, 200);
+  } finally {
+    await adapter.close();
+  }
 });
 
 test('NodeHttpEngineAdapter applies QuiltResponse headers and contentType', async () => {
@@ -191,13 +210,11 @@ test('NodeHttpEngineAdapter applies QuiltResponse headers and contentType', asyn
   const quilt = new Quilt(adapter);
 
   const handler = createHandler({
-    execute: async () => {
-      return new QuiltResponse({
-        status: 201,
-        body: 'ok',
-        headers: { 'x-quilt': 'node-http' },
-        contentType: 'text/plain',
-      });
+    execute: async ({ res }) => {
+      res.statusCode = 201;
+      res.setHeader('x-quilt', 'node-http');
+      res.setHeader('content-type', 'text/plain; charset=utf-8');
+      res.end('ok');
     },
   });
 
@@ -210,13 +227,15 @@ test('NodeHttpEngineAdapter applies QuiltResponse headers and contentType', asyn
   const port = adapter.getPort();
   assert.ok(typeof port === 'number');
 
-  const res = await fetch(`http://localhost:${port}/headers`);
-  assert.equal(res.status, 201);
-  assert.equal(res.headers.get('x-quilt'), 'node-http');
-  const contentType = res.headers.get('content-type') ?? '';
-  assert.ok(contentType.includes('text/plain'));
-  const text = await res.text();
-  assert.equal(text.trim(), 'ok');
-
-  await adapter.close();
+  try {
+    const res = await fetch(`http://localhost:${port}/headers`);
+    assert.equal(res.status, 201);
+    assert.equal(res.headers.get('x-quilt'), 'node-http');
+    const contentType = res.headers.get('content-type') ?? '';
+    assert.ok(contentType.includes('text/plain'));
+    const text = await res.text();
+    assert.equal(text.trim(), 'ok');
+  } finally {
+    await adapter.close();
+  }
 });

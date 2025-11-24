@@ -1,11 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import http, { type IncomingMessage, type ServerResponse } from 'node:http';
-import {
-  QuiltResponse,
-  SinglePartQuiltRequest,
-  type HTTPMethod,
-  type ServerEngineAdapter,
-} from '../Quilt.js';
+import { type HTTPMethod, type ServerEngineAdapter } from '../Quilt.js';
 
 type NodeHttpRequest = IncomingMessage & {
   params: Record<string, string | undefined>;
@@ -39,23 +34,6 @@ export class NodeHttpEngineAdapter
   private routes: RouteDefinition[] = [];
   private server: http.Server | undefined;
   private port: number | undefined;
-
-  public async toQuiltRequest(
-    req: NodeHttpRequest,
-    res: ServerResponse,
-  ): Promise<SinglePartQuiltRequest> {
-    return new SinglePartQuiltRequest({
-      headers: req.headers,
-      params: req.params,
-      query: req.query,
-      body: req.body,
-      raw: {
-        framework: 'node-http',
-        request: req,
-        response: res,
-      },
-    });
-  }
 
   public get(path: string, handler: NodeHttpHandler): void {
     this.routes.push({ method: 'GET', path, handler });
@@ -159,46 +137,6 @@ export class NodeHttpEngineAdapter
         }
       });
     });
-  }
-
-  public handleQuiltResponse(
-    response: QuiltResponse,
-    res: ServerResponse,
-  ): void {
-    if (!res.headersSent) {
-      res.statusCode = response.status;
-      const hasContentTypeHeader =
-        'content-type' in response.headers ||
-        'Content-Type' in response.headers;
-
-      for (const [key, value] of Object.entries(response.headers)) {
-        res.setHeader(key, value);
-      }
-
-      if (response.contentType) {
-        res.setHeader('content-type', response.contentType);
-      } else if (!hasContentTypeHeader) {
-        res.setHeader('content-type', 'application/json; charset=utf-8');
-      }
-    }
-    let payload: string;
-    const isJson =
-      (response.contentType &&
-        response.contentType.includes('application/json')) ||
-      (!response.contentType &&
-        !('content-type' in response.headers) &&
-        !('Content-Type' in response.headers));
-
-    if (isJson) {
-      payload =
-        response.body === undefined
-          ? ''
-          : JSON.stringify(response.body, null, 2);
-    } else {
-      payload = response.body === undefined ? '' : String(response.body ?? '');
-    }
-
-    res.end(payload);
   }
 
   private findRoute(

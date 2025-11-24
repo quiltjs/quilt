@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { File } from 'node:buffer';
 import { Handler } from './Handler.js';
 import { executeHandler } from './executeHandler.js';
 
@@ -42,65 +41,86 @@ export interface ServerEngineAdapter<RequestType, ResponseType> {
     handler: (req: RequestType, res: ResponseType) => Promise<void>,
   ): void;
   listen(port: number, callback?: () => void): void;
-  toQuiltRequest(
-    req: RequestType,
-    res: ResponseType,
-  ): Promise<SinglePartQuiltRequest | MultiPartQuiltRequest>;
-  handleQuiltResponse(
-    response: QuiltResponse,
-    res: ResponseType,
-  ): void | Promise<void>;
 }
 
-type ErrorHandler = (error: Error) => QuiltResponse;
+export type HttpContext<RequestType, ResponseType> = {
+  req: RequestType;
+  res: ResponseType;
+};
 
-export class Quilt {
-  private adapter: ServerEngineAdapter<any, any>;
-  private errorHandler: ErrorHandler | undefined;
+type ErrorHandler<RequestType, ResponseType> = (
+  error: Error,
+  ctx: HttpContext<RequestType, ResponseType>,
+) => void | Promise<void>;
 
-  constructor(adapter: ServerEngineAdapter<any, any>) {
+export class Quilt<RequestType = any, ResponseType = any> {
+  private adapter: ServerEngineAdapter<RequestType, ResponseType>;
+  private errorHandler?: ErrorHandler<RequestType, ResponseType>;
+
+  constructor(adapter: ServerEngineAdapter<RequestType, ResponseType>) {
     this.adapter = adapter;
   }
 
-  public get(path: string, handler: Handler<any, any>): void {
+  public get(
+    path: string,
+    handler: Handler<any, HttpContext<RequestType, ResponseType>>,
+  ): void {
     this.adapter.get(path, async (req, res) => {
-      await this.handleRequest(req, res, handler);
+      await this.handleRequest({ req, res }, handler);
     });
   }
 
-  public post(path: string, handler: Handler<any, any>): void {
+  public post(
+    path: string,
+    handler: Handler<any, HttpContext<RequestType, ResponseType>>,
+  ): void {
     this.adapter.post(path, async (req, res) => {
-      await this.handleRequest(req, res, handler);
+      await this.handleRequest({ req, res }, handler);
     });
   }
 
-  public put(path: string, handler: Handler<any, any>): void {
+  public put(
+    path: string,
+    handler: Handler<any, HttpContext<RequestType, ResponseType>>,
+  ): void {
     this.adapter.put(path, async (req, res) => {
-      await this.handleRequest(req, res, handler);
+      await this.handleRequest({ req, res }, handler);
     });
   }
 
-  public patch(path: string, handler: Handler<any, any>): void {
+  public patch(
+    path: string,
+    handler: Handler<any, HttpContext<RequestType, ResponseType>>,
+  ): void {
     this.adapter.patch(path, async (req, res) => {
-      await this.handleRequest(req, res, handler);
+      await this.handleRequest({ req, res }, handler);
     });
   }
 
-  public delete(path: string, handler: Handler<any, any>): void {
+  public delete(
+    path: string,
+    handler: Handler<any, HttpContext<RequestType, ResponseType>>,
+  ): void {
     this.adapter.delete(path, async (req, res) => {
-      await this.handleRequest(req, res, handler);
+      await this.handleRequest({ req, res }, handler);
     });
   }
 
-  public options(path: string, handler: Handler<any, any>): void {
+  public options(
+    path: string,
+    handler: Handler<any, HttpContext<RequestType, ResponseType>>,
+  ): void {
     this.adapter.options(path, async (req, res) => {
-      await this.handleRequest(req, res, handler);
+      await this.handleRequest({ req, res }, handler);
     });
   }
 
-  public head(path: string, handler: Handler<any, any>): void {
+  public head(
+    path: string,
+    handler: Handler<any, HttpContext<RequestType, ResponseType>>,
+  ): void {
     this.adapter.head(path, async (req, res) => {
-      await this.handleRequest(req, res, handler);
+      await this.handleRequest({ req, res }, handler);
     });
   }
 
@@ -108,156 +128,29 @@ export class Quilt {
     this.adapter.listen(port, callback);
   }
 
-  public setErrorHandler(errorHandler: ErrorHandler): void {
+  public setErrorHandler(
+    errorHandler: ErrorHandler<RequestType, ResponseType>,
+  ): void {
     this.errorHandler = errorHandler;
   }
 
-  private async wrapWithErrorHandler(
-    handler: () => Promise<QuiltResponse>,
-  ): Promise<QuiltResponse> {
+  private async handleRequest(
+    ctx: HttpContext<RequestType, ResponseType>,
+    handler: Handler<any, HttpContext<RequestType, ResponseType>, any>,
+  ): Promise<void> {
     if (!this.errorHandler) {
-      return await handler();
+      await executeHandler(handler, ctx);
+      return;
     }
+
     try {
-      return await handler();
+      await executeHandler(handler, ctx);
     } catch (error) {
       if (error instanceof Error) {
-        return this.errorHandler(error);
+        await this.errorHandler(error, ctx);
+      } else {
+        throw error;
       }
-      throw error;
     }
-  }
-
-  private async handleRequest(
-    req: any,
-    res: any,
-    handler: Handler<any, any, any>,
-  ): Promise<void> {
-    const quiltResponse = await this.wrapWithErrorHandler(
-      async () =>
-        await executeHandler(
-          handler,
-          await this.adapter.toQuiltRequest(req, res),
-        ),
-    );
-    await this.adapter.handleQuiltResponse(quiltResponse, res);
-  }
-}
-
-export abstract class QuiltRequest {
-  abstract headers: Record<string, string | string[] | undefined>;
-  abstract params: Record<string, string | undefined>;
-  abstract query: Record<string, string | undefined>;
-  raw?:
-    | {
-        framework: string;
-        request: unknown;
-        response: unknown;
-      }
-    | undefined;
-
-  isMultipart(): this is MultiPartQuiltRequest {
-    return false;
-  }
-
-  isSinglePart(): this is SinglePartQuiltRequest {
-    return false;
-  }
-}
-
-export class SinglePartQuiltRequest extends QuiltRequest {
-  headers: Record<string, string | string[] | undefined>;
-  params: Record<string, string | undefined>;
-  query: Record<string, string | undefined>;
-  body: unknown;
-
-  constructor({
-    headers,
-    params,
-    query,
-    body,
-    raw,
-  }: {
-    headers: Record<string, string | string[] | undefined>;
-    params: Record<string, string | undefined>;
-    query: Record<string, string | undefined>;
-    body: unknown;
-    raw?:
-      | {
-          framework: string;
-          request: unknown;
-          response: unknown;
-        }
-      | undefined;
-  }) {
-    super();
-    this.headers = headers;
-    this.params = params;
-    this.query = query;
-    this.body = body;
-    this.raw = raw;
-  }
-
-  isSinglePart(): this is SinglePartQuiltRequest {
-    return true;
-  }
-}
-
-export class MultiPartQuiltRequest extends QuiltRequest {
-  headers: Record<string, string | string[] | undefined>;
-  params: Record<string, string | undefined>;
-  query: Record<string, string | undefined>;
-  fields: Record<string, string | File>;
-
-  constructor({
-    headers,
-    params,
-    query,
-    fields,
-    raw,
-  }: {
-    headers: Record<string, string | string[] | undefined>;
-    params: Record<string, string | undefined>;
-    query: Record<string, string | undefined>;
-    fields: Record<string, string | File>;
-    raw?:
-      | {
-          framework: string;
-          request: unknown;
-          response: unknown;
-        }
-      | undefined;
-  }) {
-    super();
-    this.headers = headers;
-    this.params = params;
-    this.query = query;
-    this.fields = fields;
-    this.raw = raw;
-  }
-
-  isMultipart(): this is MultiPartQuiltRequest {
-    return true;
-  }
-}
-
-export interface QuiltResponseInit {
-  status: number;
-  body?: any;
-  headers?: Record<string, string>;
-  contentType?: string;
-}
-
-export class QuiltResponse {
-  status: number;
-  body: any;
-  headers: Record<string, string>;
-  contentType?: string;
-
-  constructor({ status, body, headers, contentType }: QuiltResponseInit) {
-    this.status = status;
-    this.body = body;
-    this.headers = headers ?? {};
-    this.contentType = contentType;
   }
 }

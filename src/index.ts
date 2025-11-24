@@ -1,12 +1,4 @@
-export {
-  Quilt,
-  QuiltRequest,
-  SinglePartQuiltRequest,
-  MultiPartQuiltRequest,
-  QuiltResponse,
-  type ServerEngineAdapter,
-  type HTTPMethod,
-} from './Quilt.js';
+export { Quilt, type ServerEngineAdapter, type HTTPMethod } from './Quilt.js';
 
 export {
   type Handler,

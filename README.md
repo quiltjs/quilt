@@ -14,7 +14,7 @@ to sit cleanly on top of your HTTP server of choice.
 - 🧩 Explicit dependency graph instead of “magic” middleware ordering
 - 🔌 Framework abstraction via `ServerEngineAdapter` (Fastify and Express adapters included)
 - 🧭 Simple routing via `Quilt` and `QuiltRouter`
-- 📦 JSON and multipart/form-data support
+- 📦 JSON and form-data support via your framework's middleware
 
 ---
 
@@ -59,7 +59,6 @@ adapters.
 
 ```ts
 import fastify from 'fastify';
-import multipart from '@fastify/multipart';
 import {
   Quilt,
   FastifyEngineAdapter,
@@ -69,14 +68,13 @@ import {
 } from '@quiltjs/quilt';
 
 const server = fastify();
-await server.register(multipart);
 
 const quilt = new Quilt(new FastifyEngineAdapter({ fastify: server }));
 
-// Simple handler that returns a JSON body
+// Simple handler that writes a JSON response
 const helloHandler = createHandler({
-  execute: async (req) => {
-    return { message: `Hello, ${req.query.name ?? 'world'}!` };
+  execute: async ({ req, res }) => {
+    res.code(200).send({ message: `Hello, ${req.query.name ?? 'world'}!` });
   },
 });
 
@@ -125,8 +123,11 @@ app.use(express.json());
 const quilt = new Quilt(new ExpressEngineAdapter({ app }));
 
 const helloHandler = createHandler({
-  execute: async (req) => {
+  execute: async ({ req, res }) => {
     return { message: `Hello, ${req.query.name ?? 'world'}!` };
+    res.status(200).json({
+      message: `Hello, ${req.query.name ?? 'world'}!`,
+    });
   },
 });
 
@@ -248,21 +249,12 @@ Handlers form a directed acyclic graph. Quilt:
 
 ### Requests and responses 📥📤
 
-Quilt introduces a small set of request/response types:
+In practice you will usually model your **own** application-level input/output types and treat
+handlers as an orchestration layer:
 
-- `QuiltRequest` – base request type
-- `SinglePartQuiltRequest` – JSON/URL-encoded request with a `body`
-- `MultiPartQuiltRequest` – multipart/form-data with text fields and `File`s
-- `QuiltResponse` – wraps an HTTP status, response body, optional headers, and an optional `contentType`
-
-The Fastify adapter converts:
-
-- `req.headers`, `req.params`, `req.query`, `req.body` → `QuiltRequest`
-- Multipart form-data into `MultiPartQuiltRequest.fields`
-
-`createHandler` automatically wraps your return value in a `QuiltResponse` with status `200`. If you
-need full control, you can construct and return a `QuiltResponse` yourself inside the handler chain (to
-override status, headers, or content type).
+- At the edge, handlers receive a context (for HTTP adapters this is `{ req, res }`).
+- They translate framework-specific request data into your own DTOs and call domain functions.
+- They write the HTTP response using the native framework APIs (`res.json`, `reply.send`, etc.).
 
 ### Routing
 
@@ -334,8 +326,9 @@ into a `QuiltResponse`.
 
 ## Multipart example 📎
 
-When `@fastify/multipart` is installed and registered, file uploads are exposed via
-`MultiPartQuiltRequest`:
+If your adapter maps multipart/form-data requests into a `MultiPartQuiltRequest`
+instance (for example, in a custom Fastify adapter that wraps `@fastify/multipart`),
+you can handle file uploads like this:
 
 ```ts
 import {

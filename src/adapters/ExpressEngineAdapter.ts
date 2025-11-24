@@ -1,10 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Express, Request, Response } from 'express';
-import {
-  QuiltResponse,
-  SinglePartQuiltRequest,
-  type ServerEngineAdapter,
-} from '../Quilt.js';
+import { type ServerEngineAdapter } from '../Quilt.js';
 
 /**
  * Adapter that implements the ServerEngineAdapter interface using Express.
@@ -19,23 +15,6 @@ export class ExpressEngineAdapter
 
   constructor({ app }: { app: Express }) {
     this.app = app;
-  }
-
-  public async toQuiltRequest(
-    req: Request,
-    res: Response,
-  ): Promise<SinglePartQuiltRequest> {
-    return new SinglePartQuiltRequest({
-      headers: req.headers,
-      params: req.params as Record<string, string | undefined>,
-      query: req.query as Record<string, string | undefined>,
-      body: req.body,
-      raw: {
-        framework: 'express',
-        request: req,
-        response: res,
-      },
-    });
   }
 
   public get(
@@ -89,20 +68,6 @@ export class ExpressEngineAdapter
         callback();
       }
     });
-  }
-
-  public handleQuiltResponse(response: QuiltResponse, res: Response): any {
-    let expr = res.status(response.status);
-
-    for (const [key, value] of Object.entries(response.headers)) {
-      expr = expr.set(key, value);
-    }
-
-    if (response.contentType) {
-      expr = expr.type(response.contentType);
-    }
-
-    return expr.send(response.body);
   }
 
   public options(

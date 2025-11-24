@@ -4,7 +4,6 @@ import express from 'express';
 import {
   Quilt,
   ExpressEngineAdapter,
-  QuiltResponse,
   createHandler,
   registerRouters,
 } from '../dist/index.js';
@@ -14,8 +13,8 @@ test('ExpressEngineAdapter integrates Quilt with Express for GET + query', async
   const quilt = new Quilt(new ExpressEngineAdapter({ app }));
 
   const helloHandler = createHandler({
-    execute: async (req) => {
-      return { message: `hi ${req.query.name ?? 'world'}` };
+    execute: async ({ req, res }) => {
+      res.status(200).json({ message: `hi ${req.query.name ?? 'world'}` });
     },
   });
 
@@ -41,11 +40,11 @@ test('ExpressEngineAdapter maps params and body for POST', async () => {
   const quilt = new Quilt(new ExpressEngineAdapter({ app }));
 
   const echoHandler = createHandler({
-    execute: async (req) => {
-      return {
+    execute: async ({ req, res }) => {
+      res.status(200).json({
         id: req.params.id,
         body: req.body,
-      };
+      });
     },
   });
 
@@ -79,11 +78,8 @@ test('ExpressEngineAdapter respects Quilt error handler', async () => {
     },
   });
 
-  quilt.setErrorHandler((error) => {
-    return new QuiltResponse({
-      status: 500,
-      body: { error: error.message },
-    });
+  quilt.setErrorHandler((error, { res }) => {
+    res.status(500).json({ error: error.message });
   });
 
   quilt.get('/fail', failingHandler);
@@ -106,13 +102,8 @@ test('ExpressEngineAdapter applies QuiltResponse headers and contentType', async
   const quilt = new Quilt(new ExpressEngineAdapter({ app }));
 
   const handler = createHandler({
-    execute: async () => {
-      return new QuiltResponse({
-        status: 201,
-        body: 'ok',
-        headers: { 'x-quilt': 'express' },
-        contentType: 'text/plain',
-      });
+    execute: async ({ res }) => {
+      res.status(201).set('x-quilt', 'express').type('text/plain').send('ok');
     },
   });
 
@@ -145,8 +136,8 @@ test('ExpressEngineAdapter works with registerRouters', async () => {
   const quilt = new Quilt(new ExpressEngineAdapter({ app }));
 
   const statusHandler = createHandler({
-    execute: async () => {
-      return { ok: true };
+    execute: async ({ res }) => {
+      res.status(200).json({ ok: true });
     },
   });
 
@@ -183,14 +174,14 @@ test('ExpressEngineAdapter supports OPTIONS and HEAD', async () => {
   const quilt = new Quilt(new ExpressEngineAdapter({ app }));
 
   const optionsHandler = createHandler({
-    execute: async () => {
-      return { allow: 'GET,OPTIONS,HEAD' };
+    execute: async ({ res }) => {
+      res.status(200).json({ allow: 'GET,OPTIONS,HEAD' });
     },
   });
 
   const headHandler = createHandler({
-    execute: async () => {
-      return { ok: true };
+    execute: async ({ res }) => {
+      res.status(200).end();
     },
   });
 

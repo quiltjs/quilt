@@ -1,12 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fastify from 'fastify';
-import multipart from '@fastify/multipart';
 
 import {
   Quilt,
   FastifyEngineAdapter,
-  QuiltResponse,
   createHandler,
   registerRouters,
 } from '../dist/index.js';
@@ -17,8 +15,8 @@ test('FastifyEngineAdapter integrates Quilt with Fastify for GET + query', async
   const quilt = new Quilt(new FastifyEngineAdapter({ fastify: app }));
 
   const helloHandler = createHandler({
-    execute: async (req) => {
-      return { message: `hi ${req.query.name ?? 'world'}` };
+    execute: async ({ req, res }) => {
+      res.code(200).send({ message: `hi ${req.query.name ?? 'world'}` });
     },
   });
 
@@ -42,11 +40,11 @@ test('FastifyEngineAdapter maps params and body for POST', async () => {
   const quilt = new Quilt(new FastifyEngineAdapter({ fastify: app }));
 
   const echoHandler = createHandler({
-    execute: async (req) => {
-      return {
+    execute: async ({ req, res }) => {
+      res.code(200).send({
         id: req.params.id,
         body: req.body,
-      };
+      });
     },
   });
 
@@ -80,11 +78,8 @@ test('FastifyEngineAdapter respects Quilt error handler', async () => {
     },
   });
 
-  quilt.setErrorHandler((error) => {
-    return new QuiltResponse({
-      status: 500,
-      body: { error: error.message },
-    });
+  quilt.setErrorHandler((error, { res }) => {
+    res.code(500).send({ error: error.message });
   });
 
   quilt.get('/fail', failingHandler);
@@ -107,8 +102,8 @@ test('FastifyEngineAdapter works with registerRouters', async () => {
   const quilt = new Quilt(new FastifyEngineAdapter({ fastify: app }));
 
   const statusHandler = createHandler({
-    execute: async () => {
-      return { ok: true };
+    execute: async ({ res }) => {
+      res.code(200).send({ ok: true });
     },
   });
 
@@ -145,14 +140,14 @@ test('FastifyEngineAdapter supports OPTIONS and HEAD', async () => {
   const quilt = new Quilt(new FastifyEngineAdapter({ fastify: app }));
 
   const optionsHandler = createHandler({
-    execute: async () => {
-      return { allow: 'GET,OPTIONS,HEAD' };
+    execute: async ({ res }) => {
+      res.code(200).send({ allow: 'GET,OPTIONS,HEAD' });
     },
   });
 
   const headHandler = createHandler({
-    execute: async () => {
-      return { ok: true };
+    execute: async ({ res }) => {
+      res.code(200).send({ ok: true });
     },
   });
 
@@ -185,13 +180,8 @@ test('FastifyEngineAdapter applies QuiltResponse headers and contentType', async
   const quilt = new Quilt(new FastifyEngineAdapter({ fastify: app }));
 
   const handler = createHandler({
-    execute: async () => {
-      return new QuiltResponse({
-        status: 201,
-        body: 'ok',
-        headers: { 'x-quilt': 'fastify' },
-        contentType: 'text/plain',
-      });
+    execute: async ({ res }) => {
+      res.code(201).header('x-quilt', 'fastify').type('text/plain').send('ok');
     },
   });
 
