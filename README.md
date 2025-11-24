@@ -25,7 +25,7 @@ Quilt gives you a clearer alternative to traditional middleware. Instead of rely
 - Explicit dependencies — handlers declare what they need; Quilt runs them once per request and injects the results.
 - Plain async functions — no decorators, classes, or schema systems required.
 - Framework-agnostic — works with Fastify, Express, or any HTTP server via a tiny adapter.
-- Consistent request/response model — JSON, URL-encoded, and multipart handled the same way.
+- Consistent handler model across frameworks — the same dependency graph pattern works everywhere.
 - Composable by design — auth, loading, validation, and business logic stay small and reusable.
 
 If you want strong types and predictable composition without adopting a whole new framework, Quilt is designed for exactly that.
@@ -37,9 +37,9 @@ If you want strong types and predictable composition without adopting a whole ne
 Fastify:
 
 ```bash
-npm install @quiltjs/quilt @fastify/multipart fastify
+npm install @quiltjs/quilt fastify
 # or
-pnpm add @quiltjs/quilt @fastify/multipart fastify
+pnpm add @quiltjs/quilt fastify
 ```
 
 Express:
@@ -183,11 +183,6 @@ const profileHandler = createHandler({
       name: 'Jane Doe',
     };
   },
-});
-
-// Execute the graph over any context object you choose
-await executeHandler(profileHandler, {
-  headers: incomingHeaders,
 });
 ```
 
